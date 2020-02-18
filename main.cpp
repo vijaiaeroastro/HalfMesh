@@ -81,6 +81,7 @@ struct Mesh
             {
                 new_vertex_handle = all_vertices.size();
             }
+            new_vertex->id = new_vertex_handle;
             all_vertices.push_back(new_vertex);
             vertex_to_vertex_handle_map[new_vertex] = new_vertex_handle;
             return_handle = new_vertex_handle;
@@ -96,8 +97,7 @@ struct Mesh
     unsigned int add_face(Vertex *v1, Vertex *v2, Vertex* v3)
     {
         unsigned int face_handle;
-        auto iter = vertices_to_face_handle_map.find(std::make_tuple(v1->id, v2->id, v3->id));
-        if (vertices_to_face_handle_map.end() != iter)
+        if (vertices_to_face_handle_map.find(std::make_tuple(v1->id, v2->id, v3->id)) == vertices_to_face_handle_map.end())
         {
             if(all_faces.size() == 0)
             {
@@ -105,7 +105,7 @@ struct Mesh
             }
             else
             {
-                face_handle = all_vertices.size();
+                face_handle = all_faces.size();
             }
             Face *new_face = new Face(v1,v2,v3);
             new_face->face_handle = face_handle;
@@ -135,6 +135,5 @@ int main()
     new_mesh->add_vertex(v4);
     new_mesh->add_face(v1,v2,v3);
     new_mesh->add_face(v2,v4,v3);
-    std::cout << new_mesh->vertices_to_face_handle_map.size() << std::endl;
     return 0;
 }
