@@ -85,12 +85,13 @@ struct Mesh
             all_vertices.push_back(new_vertex);
             vertex_to_vertex_handle_map[new_vertex] = new_vertex_handle;
             return_handle = new_vertex_handle;
+            std::cout << "New Vertex added with handle : " << return_handle << std::endl;
         }
         else
         {
             return_handle = vertex_to_vertex_handle_map[new_vertex];
+            std::cout << "A Vertex exists with handle : " << return_handle << std::endl;
         }
-        std::cout << "New Vertex added with handle : " << return_handle << std::endl;
         return return_handle;
     }
 
@@ -111,12 +112,13 @@ struct Mesh
             new_face->face_handle = face_handle;
             all_faces.push_back(new_face);
             vertices_to_face_handle_map[std::make_tuple(v1->id, v2->id, v3->id)] = face_handle;
+            std::cout << "New Face added with handle : " << face_handle << std::endl;
         }
         else
         {
             face_handle = vertices_to_face_handle_map[std::make_tuple(v1->id, v2->id, v3->id)];
+            std::cout << "A Face exists with handle : " << face_handle << std::endl;
         }
-        std::cout << "New Face added with handle : " << face_handle << std::endl;
         return face_handle;
     }
 
@@ -133,7 +135,11 @@ int main()
     new_mesh->add_vertex(v2);
     new_mesh->add_vertex(v3);
     new_mesh->add_vertex(v4);
+    // Try adding duplicate vertex here
+    new_mesh->add_vertex(v2);
     new_mesh->add_face(v1,v2,v3);
     new_mesh->add_face(v2,v4,v3);
+    // Try adding duplicate face here
+    new_mesh->add_face(v1,v2,v3);
     return 0;
 }
