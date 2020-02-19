@@ -1,3 +1,6 @@
+#pragma once
+#include <iostream>
+
 namespace HalfMesh
 {
     struct Vertex;

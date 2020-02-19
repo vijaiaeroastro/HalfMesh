@@ -1,9 +1,4 @@
 #include <iostream>
-#include <vector>
-#include <map>
-#include <tuple>
-#include <utility>
-#include <unordered_map>
 #include <mesh.hpp>
 
 int main()
@@ -27,9 +22,9 @@ int main()
     // Complete the mesh here
     new_mesh->complete_mesh();
     // Loop through faces
-    for(unsigned int i = 0; i < new_mesh->all_faces.size(); ++i)
+    for(unsigned int i = 0; i < new_mesh->get_faces().size(); ++i)
     {
-        Face *new_face = new_mesh->all_faces.at(i);
+        Face *new_face = new_mesh->get_faces().at(i);
         std::cout << "One half edge for face F: " << new_face->face_handle << " HE : " << new_face->one_half_edge->half_edge_handle << std::endl;
     }
     return 0;

@@ -34,7 +34,7 @@ namespace HalfMesh
     typedef std::unordered_map<const three_type_t, unsigned int,three_key_hash,three_key_equal> special_map_three;
 
 
-// Double key tuple hash map
+    // Double key tuple hash map
     typedef std::tuple<unsigned int, unsigned int> twin_type_t;
 
     struct twin_key_hash : public std::unary_function<twin_type_t, std::size_t>
