@@ -56,6 +56,12 @@ struct twin_key_equal : public std::binary_function<twin_type_t, twin_type_t, bo
 
 typedef std::unordered_map<const twin_type_t, unsigned int,twin_key_hash,twin_key_equal> special_map_twin;
 
+// Forward declarations
+struct Vertex;
+struct Edge;
+struct HalfEdge;
+struct Face;
+
 // A vertex structure
 struct Vertex
 {
@@ -67,8 +73,11 @@ struct Vertex
 // An edge structure
 struct Edge
 {
-    unsigned int v1, v2;
+    Edge(Vertex *_v1, Vertex *_v2):v1(_v1), v2(_v2){};
+    Vertex *v1, *v2;
     unsigned int edge_handle;
+    std::pair< HalfEdge*, HalfEdge* > half_edges;
+
 };
 
 // A face structure
@@ -97,6 +106,10 @@ struct Mesh
     std::vector< Vertex* > all_vertices;
     std::map< Vertex*, unsigned int > vertex_to_vertex_handle_map;
     special_map_three vertices_to_face_handle_map;
+    special_map_twin vertices_to_edge_handle_map;
+    std::unordered_map< unsigned int, unsigned int > edge_to_half_edge_map;
+    std::unordered_map< unsigned int, unsigned int > half_edge_edge_map; // Replace these with bidirectional maps
+    std::unordered_map< unsigned int, unsigned int > half_edge_to_face_map;
 
     unsigned int add_vertex(Vertex *new_vertex)
     {
@@ -116,17 +129,49 @@ struct Mesh
             all_vertices.push_back(new_vertex);
             vertex_to_vertex_handle_map[new_vertex] = new_vertex_handle;
             return_handle = new_vertex_handle;
-            std::cout << "New Vertex added with handle : " << return_handle << std::endl;
+            std::cout << "---> New Vertex added with handle : " << return_handle << std::endl;
         }
         else
         {
             return_handle = vertex_to_vertex_handle_map[new_vertex];
-            std::cout << "A Vertex exists with handle : " << return_handle << std::endl;
+            std::cout << "---> A Vertex exists with handle : " << return_handle << std::endl;
         }
         return return_handle;
     }
 
-    unsigned int add_face(Vertex *v1, Vertex *v2, Vertex* v3)
+    void add_half_edges(Vertex *v1, Vertex *v2)
+    {
+
+    }
+
+    void add_edge(Vertex *v1, Vertex *v2)
+    {
+        unsigned int edge_handle;
+        if(vertices_to_edge_handle_map.find(std::make_tuple(v1->id, v2->id)) == vertices_to_edge_handle_map.end())
+        {
+            if(all_edges.size() == 0)
+            {
+                edge_handle = 0;
+            }
+            else
+            {
+                edge_handle = all_edges.size();
+            }
+            Edge* new_edge = new Edge(v1, v2);
+            new_edge->edge_handle = edge_handle;
+            all_edges.push_back(new_edge);
+            vertices_to_edge_handle_map[std::make_tuple(v1->id, v2->id)] = edge_handle;
+            std::cout << "--->---> New Edge added with handle : " << edge_handle << std::endl;
+            add_half_edges(v1, v2);
+        }
+        else
+        {
+            edge_handle = vertices_to_edge_handle_map[std::make_tuple(v1->id, v2->id)];
+            std::cout << "--->--->An Edge exists with handle : " << edge_handle << std::endl;
+        }
+    }
+
+    void add_face(Vertex *v1, Vertex *v2, Vertex* v3)
     {
         unsigned int face_handle;
         if (vertices_to_face_handle_map.find(std::make_tuple(v1->id, v2->id, v3->id)) == vertices_to_face_handle_map.end())
@@ -143,14 +188,16 @@ struct Mesh
             new_face->face_handle = face_handle;
             all_faces.push_back(new_face);
             vertices_to_face_handle_map[std::make_tuple(v1->id, v2->id, v3->id)] = face_handle;
-            std::cout << "New Face added with handle : " << face_handle << std::endl;
+            std::cout << "---> New Face added with handle : " << face_handle << std::endl;
+            add_edge(v1,v2);
+            add_edge(v2,v3);
+            add_edge(v3,v2);
         }
         else
         {
             face_handle = vertices_to_face_handle_map[std::make_tuple(v1->id, v2->id, v3->id)];
-            std::cout << "A Face exists with handle : " << face_handle << std::endl;
+            std::cout << "---> A Face exists with handle : " << face_handle << std::endl;
         }
-        return face_handle;
     }
 
 };
