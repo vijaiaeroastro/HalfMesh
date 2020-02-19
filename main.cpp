@@ -87,6 +87,7 @@ struct Face
     Face(Vertex *_v1, Vertex *_v2, Vertex *_v3):v1(_v1), v2(_v2), v3(_v3){};
     Vertex *v1, *v2, *v3;
     unsigned int face_handle;
+    HalfEdge *one_half_edge = NULL;
 };
 
 // A Half edge structure
@@ -107,15 +108,19 @@ struct Mesh
     std::vector< Edge* > all_edges;
     std::vector< HalfEdge* > all_half_edges;
     std::vector< Vertex* > all_vertices;
-    std::map< Vertex*, unsigned int > vertex_to_vertex_handle_map;
+    std::unordered_map< Vertex*, unsigned int > vertex_to_vertex_handle_map;
     special_map_three vertices_to_face_handle_map;
     special_map_twin vertices_to_edge_handle_map;
     std::unordered_map< unsigned int, unsigned int > edge_to_half_edge_map;
     std::unordered_map< unsigned int, unsigned int > half_edge_edge_map; // Replace these with bidirectional maps
     std::unordered_map< unsigned int, unsigned int > half_edge_to_face_map;
+    std::unordered_map< unsigned int, Vertex* > vertex_handle_to_vertex_map;
+    std::unordered_map< unsigned int, Edge* > edge_handle_to_edge_map;
+    std::unordered_map< unsigned int, HalfEdge* > half_edge_handle_to_half_edge_map;
+    std::unordered_map< unsigned int, Face* > face_handle_to_face_map;
     twin_map_he_special vertex_to_half_edge_map;
 
-    unsigned int add_vertex(Vertex *new_vertex)
+    void add_vertex(Vertex *new_vertex)
     {
         unsigned int return_handle;
         if(vertex_to_vertex_handle_map.find(new_vertex) == vertex_to_vertex_handle_map.end())
@@ -133,6 +138,7 @@ struct Mesh
             all_vertices.push_back(new_vertex);
             vertex_to_vertex_handle_map[new_vertex] = new_vertex_handle;
             return_handle = new_vertex_handle;
+            vertex_handle_to_vertex_map[new_vertex_handle] = new_vertex;
             std::cout << "---> New Vertex added with handle : " << return_handle << std::endl;
         }
         else
@@ -140,7 +146,6 @@ struct Mesh
             return_handle = vertex_to_vertex_handle_map[new_vertex];
             std::cout << "---> A Vertex exists with handle : " << return_handle << std::endl;
         }
-        return return_handle;
     }
 
     void add_half_edge(Vertex *v1, Vertex *v2, Face *f1)
@@ -164,6 +169,7 @@ struct Mesh
                 new_half_edge->opposing_half_edge = vertex_to_half_edge_map[std::make_tuple(v2->id,v1->id)]->half_edge_handle;
             }
             all_half_edges.push_back(new_half_edge);
+            half_edge_handle_to_half_edge_map[half_edge_handle] = new_half_edge;
             std::cout << "--->--->---> New Half Edge added with handle : " << half_edge_handle << std::endl;
         }
         else
@@ -191,6 +197,7 @@ struct Mesh
             all_edges.push_back(new_edge);
             vertices_to_edge_handle_map[std::make_tuple(v1->id, v2->id)] = edge_handle;
             std::cout << "--->---> New Edge added with handle : " << edge_handle << std::endl;
+            edge_handle_to_edge_map[edge_handle] = new_edge;
             add_half_edge(v1, v2, f1);
         }
         else
@@ -218,6 +225,7 @@ struct Mesh
             all_faces.push_back(new_face);
             vertices_to_face_handle_map[std::make_tuple(v1->id, v2->id, v3->id)] = face_handle;
             std::cout << "---> New Face added with handle : " << face_handle << std::endl;
+            face_handle_to_face_map[face_handle] = new_face;
             add_edge(v1,v2, new_face);
             add_edge(v2,v3, new_face);
             add_edge(v3,v2, new_face);
