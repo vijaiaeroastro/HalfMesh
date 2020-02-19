@@ -5,6 +5,12 @@
 #include <utility>
 #include <unordered_map>
 
+// Forward declarations
+struct Vertex;
+struct Edge;
+struct HalfEdge;
+struct Face;
+
 // Triple key tuple hash map
 
 typedef std::tuple<unsigned int, unsigned int, unsigned int> three_type_t;
@@ -54,13 +60,8 @@ struct twin_key_equal : public std::binary_function<twin_type_t, twin_type_t, bo
     }
 };
 
-typedef std::unordered_map<const twin_type_t, unsigned int,twin_key_hash,twin_key_equal> special_map_twin;
-
-// Forward declarations
-struct Vertex;
-struct Edge;
-struct HalfEdge;
-struct Face;
+typedef std::unordered_map<const twin_type_t, unsigned int, twin_key_hash, twin_key_equal> special_map_twin;
+typedef std::unordered_map<const twin_type_t, HalfEdge*, twin_key_hash, twin_key_equal> twin_map_he_special;
 
 // A vertex structure
 struct Vertex
@@ -91,7 +92,9 @@ struct Face
 // A Half edge structure
 struct HalfEdge
 {
-    unsigned int from_vertex, to_vertex;
+    HalfEdge(Vertex *_v1, Vertex *_v2):v1(_v1), v2(_v2){};
+    Vertex *v1, *v2;
+    unsigned int half_edge_handle;
     unsigned int parent_face_handle;
     unsigned int opposing_half_edge;
     unsigned int next_half_edge;
@@ -110,6 +113,7 @@ struct Mesh
     std::unordered_map< unsigned int, unsigned int > edge_to_half_edge_map;
     std::unordered_map< unsigned int, unsigned int > half_edge_edge_map; // Replace these with bidirectional maps
     std::unordered_map< unsigned int, unsigned int > half_edge_to_face_map;
+    twin_map_he_special vertex_to_half_edge_map;
 
     unsigned int add_vertex(Vertex *new_vertex)
     {
@@ -139,12 +143,37 @@ struct Mesh
         return return_handle;
     }
 
-    void add_half_edges(Vertex *v1, Vertex *v2)
+    void add_half_edge(Vertex *v1, Vertex *v2, Face *f1)
     {
-
+        unsigned int half_edge_handle;
+        if(vertex_to_half_edge_map.find(std::make_tuple(v1->id, v2->id)) == vertex_to_half_edge_map.end())
+        {
+            if(all_half_edges.size() == 0)
+            {
+                half_edge_handle = 0;
+            }
+            else
+            {
+                half_edge_handle = all_half_edges.size();
+            }
+            HalfEdge* new_half_edge = new HalfEdge(v1,v2);
+            new_half_edge->half_edge_handle = half_edge_handle;
+            new_half_edge->parent_face_handle = f1->face_handle;
+            if(vertex_to_half_edge_map.find(std::make_tuple(v2->id, v1->id)) != vertex_to_half_edge_map.end())
+            {
+                new_half_edge->opposing_half_edge = vertex_to_half_edge_map[std::make_tuple(v2->id,v1->id)]->half_edge_handle;
+            }
+            all_half_edges.push_back(new_half_edge);
+            std::cout << "--->--->---> New Half Edge added with handle : " << half_edge_handle << std::endl;
+        }
+        else
+        {
+            half_edge_handle = vertex_to_half_edge_map[std::make_tuple(v1->id, v2->id)]->half_edge_handle;
+            std::cout << "--->--->---> A Half Edge exists with handle : " << half_edge_handle << std::endl;
+        }
     }
 
-    void add_edge(Vertex *v1, Vertex *v2)
+    void add_edge(Vertex *v1, Vertex *v2, Face* f1)
     {
         unsigned int edge_handle;
         if(vertices_to_edge_handle_map.find(std::make_tuple(v1->id, v2->id)) == vertices_to_edge_handle_map.end())
@@ -162,7 +191,7 @@ struct Mesh
             all_edges.push_back(new_edge);
             vertices_to_edge_handle_map[std::make_tuple(v1->id, v2->id)] = edge_handle;
             std::cout << "--->---> New Edge added with handle : " << edge_handle << std::endl;
-            add_half_edges(v1, v2);
+            add_half_edge(v1, v2, f1);
         }
         else
         {
@@ -189,9 +218,9 @@ struct Mesh
             all_faces.push_back(new_face);
             vertices_to_face_handle_map[std::make_tuple(v1->id, v2->id, v3->id)] = face_handle;
             std::cout << "---> New Face added with handle : " << face_handle << std::endl;
-            add_edge(v1,v2);
-            add_edge(v2,v3);
-            add_edge(v3,v2);
+            add_edge(v1,v2, new_face);
+            add_edge(v2,v3, new_face);
+            add_edge(v3,v2, new_face);
         }
         else
         {
