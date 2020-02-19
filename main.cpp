@@ -43,5 +43,11 @@ int main()
         }
     }
     std::cout << "There is a total of " << count << " boundary edges in this mesh" << std::endl;
+    // Loop through half edges and find boundaries
+    for(unsigned int i = 0; i < new_mesh->get_half_edges().size(); ++i)
+    {
+        HalfEdge* halfEdge = new_mesh->get_half_edges().at(i);
+        std::cout << "Is Boundary ( " << i << " ) : " << halfEdge->boundary_half_edge << std::endl;
+    }
     return 0;
 }
