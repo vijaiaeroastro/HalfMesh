@@ -3,4 +3,14 @@ project(HalfMesh)
 
 set(CMAKE_CXX_STANDARD 11)
 
-add_executable(HalfMesh main.cpp)
+include_directories(include)
+
+set(HDRS include/common.hpp
+         include/edge.hpp
+         include/face.hpp
+         include/general.hpp
+         include/half_edge.hpp
+         include/mesh.hpp
+         include/vertex.hpp)
+
+add_executable(HalfMesh main.cpp ${HDRS})
