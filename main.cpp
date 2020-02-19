@@ -5,19 +5,21 @@
 #include <utility>
 #include <unordered_map>
 
-typedef std::tuple<unsigned int, unsigned int, unsigned int> key_type_t;
+// Triple key tuple hash map
 
-struct key_hash : public std::unary_function<key_type_t, std::size_t>
+typedef std::tuple<unsigned int, unsigned int, unsigned int> three_type_t;
+
+struct three_key_hash : public std::unary_function<three_type_t, std::size_t>
 {
-    std::size_t operator()(const key_type_t& k) const
+    std::size_t operator()(const three_type_t& k) const
     {
         return std::get<0>(k) ^ std::get<1>(k) ^ std::get<2>(k);
     }
 };
 
-struct key_equal : public std::binary_function<key_type_t, key_type_t, bool>
+struct three_key_equal : public std::binary_function<three_type_t, three_type_t, bool>
 {
-    bool operator()(const key_type_t& v0, const key_type_t& v1) const
+    bool operator()(const three_type_t& v0, const three_type_t& v1) const
     {
         return (
                 std::get<0>(v0) == std::get<0>(v1) &&
@@ -27,8 +29,34 @@ struct key_equal : public std::binary_function<key_type_t, key_type_t, bool>
     }
 };
 
-typedef std::unordered_map<const key_type_t, unsigned int,key_hash,key_equal> special_map;
+typedef std::unordered_map<const three_type_t, unsigned int,three_key_hash,three_key_equal> special_map_three;
 
+
+// Double key tuple hash map
+typedef std::tuple<unsigned int, unsigned int> twin_type_t;
+
+struct twin_key_hash : public std::unary_function<twin_type_t, std::size_t>
+{
+    std::size_t operator()(const twin_type_t& k) const
+    {
+        return std::get<0>(k) ^ std::get<1>(k);
+    }
+};
+
+struct twin_key_equal : public std::binary_function<twin_type_t, twin_type_t, bool>
+{
+    bool operator()(const twin_type_t& v0, const twin_type_t& v1) const
+    {
+        return (
+                std::get<0>(v0) == std::get<0>(v1) &&
+                std::get<1>(v0) == std::get<1>(v1)
+        );
+    }
+};
+
+typedef std::unordered_map<const twin_type_t, unsigned int,twin_key_hash,twin_key_equal> special_map_twin;
+
+// A vertex structure
 struct Vertex
 {
     Vertex(double _x1, double _x2, double _x3):x1(_x1), x2(_x2), x3(_x3){};
@@ -36,12 +64,14 @@ struct Vertex
     unsigned int id;
 };
 
+// An edge structure
 struct Edge
 {
     unsigned int v1, v2;
     unsigned int edge_handle;
 };
 
+// A face structure
 struct Face
 {
     Face(Vertex *_v1, Vertex *_v2, Vertex *_v3):v1(_v1), v2(_v2), v3(_v3){};
@@ -49,6 +79,7 @@ struct Face
     unsigned int face_handle;
 };
 
+// A Half edge structure
 struct HalfEdge
 {
     unsigned int from_vertex, to_vertex;
@@ -65,7 +96,7 @@ struct Mesh
     std::vector< HalfEdge* > all_half_edges;
     std::vector< Vertex* > all_vertices;
     std::map< Vertex*, unsigned int > vertex_to_vertex_handle_map;
-    special_map vertices_to_face_handle_map;
+    special_map_three vertices_to_face_handle_map;
 
     unsigned int add_vertex(Vertex *new_vertex)
     {
