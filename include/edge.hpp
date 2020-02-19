@@ -14,6 +14,7 @@ namespace HalfMesh
             Vertex *v1, *v2;
             unsigned int edge_handle;
             HalfEdge *one_half_edge = NULL;
+            bool boundary_edge = false;
 
     };
 }

@@ -1,4 +1,3 @@
-#include <iostream>
 #include <mesh.hpp>
 
 int main()
@@ -27,5 +26,22 @@ int main()
         Face *new_face = new_mesh->get_faces().at(i);
         std::cout << "One half edge for face F: " << new_face->face_handle << " HE : " << new_face->one_half_edge->half_edge_handle << std::endl;
     }
+    // Loop through vertices
+    for(unsigned int i = 0; i < new_mesh->get_vertices().size(); ++i)
+    {
+        Vertex* new_vertex = new_mesh->get_vertices().at(i);
+        std::cout << "Vertex " << i+1 << " has " << new_vertex->incoming_half_edges.size() << " incoming half edges and " << new_vertex->outgoing_half_edges.size() << " outgoing half edges" << std::endl;
+    }
+    // Loop through edges and find boundaries
+    unsigned int count = 0;
+    for(unsigned int i = 0; i < new_mesh->get_edges().size(); ++i)
+    {
+        Edge* new_edge = new_mesh->get_edges().at(i);
+        if(new_edge->boundary_edge)
+        {
+            count = count + 1;
+        }
+    }
+    std::cout << "There is a total of " << count << " boundary edges in this mesh" << std::endl;
     return 0;
 }

@@ -1,9 +1,5 @@
 #pragma once
 #include <common.hpp>
-#include <unordered_map>
-#include <tuple>
-#include <utility>
-#include <vector>
 
 namespace HalfMesh
 {

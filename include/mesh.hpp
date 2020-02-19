@@ -45,11 +45,15 @@ namespace HalfMesh
                     new_half_edge->opposing_half_edge = vertex_to_half_edge_map[std::make_tuple(v2->id,
                                                                                                 v1->id)]->half_edge_handle;
                 }
+                v1->outgoing_half_edges.insert(half_edge_handle);
+                v2->incoming_half_edges.insert(half_edge_handle);
                 all_half_edges.push_back(new_half_edge);
                 half_edge_handle_to_half_edge_map[half_edge_handle] = new_half_edge;
                 face_to_one_half_edge_map[f1] = new_half_edge;
                 std::cout << "--->--->---> New Half Edge added with handle : " << half_edge_handle << std::endl;
-            } else {
+            }
+            else
+            {
                 half_edge_handle = vertex_to_half_edge_map[std::make_tuple(v1->id, v2->id)]->half_edge_handle;
                 std::cout << "--->--->---> A Half Edge exists with handle : " << half_edge_handle << std::endl;
             }
@@ -98,7 +102,7 @@ namespace HalfMesh
                 face_handle_to_face_map[face_handle] = new_face;
                 Edge *e1 = add_edge(v1, v2, new_face);
                 Edge *e2 = add_edge(v2, v3, new_face);
-                Edge *e3 = add_edge(v3, v2, new_face);
+                Edge *e3 = add_edge(v3, v1, new_face);
             } else {
                 face_handle = vertices_to_face_handle_map[std::make_tuple(v1->id, v2->id, v3->id)];
                 std::cout << "---> A Face exists with handle : " << face_handle << std::endl;
@@ -109,15 +113,34 @@ namespace HalfMesh
 
     private:
         void establish_connectivity() {
-            for (auto iter = face_to_one_half_edge_map.begin(); iter != face_to_one_half_edge_map.end(); ++iter) {
+            for(auto iter = face_to_one_half_edge_map.begin(); iter != face_to_one_half_edge_map.end(); ++iter)
+            {
                 Face *face = iter->first;
                 HalfEdge *halfEdge = iter->second;
                 face->one_half_edge = halfEdge;
             }
-            for (auto iter = edge_to_one_half_edge_map.begin(); iter != edge_to_one_half_edge_map.end(); ++iter) {
+            for(auto iter = edge_to_one_half_edge_map.begin(); iter != edge_to_one_half_edge_map.end(); ++iter)
+            {
                 Edge *edge = iter->first;
                 HalfEdge *halfEdge = iter->second;
                 edge->one_half_edge = halfEdge;
+            }
+            for(unsigned int i = 0; i < all_half_edges.size(); ++i)
+            {
+                HalfEdge *edge = all_half_edges.at(i);
+                if(edge->opposing_half_edge  == std::numeric_limits<unsigned int>::max())
+                {
+                    edge->boundary_half_edge = true;
+                }
+            }
+            for(unsigned int i = 0; i < all_edges.size(); ++i)
+            {
+                Edge *edge = all_edges.at(i);
+                HalfEdge *halfEdge = edge->one_half_edge;
+                if(halfEdge->boundary_half_edge)
+                {
+                    edge->boundary_edge = true;
+                }
             }
         }
 

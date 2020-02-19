@@ -15,7 +15,8 @@ namespace HalfMesh
             unsigned int half_edge_handle;
             unsigned int parent_edge_handle;
             unsigned int parent_face_handle;
-            unsigned int opposing_half_edge;
+            unsigned int opposing_half_edge = std::numeric_limits<unsigned int>::max();
             unsigned int next_half_edge;
+            bool boundary_half_edge;
     };
 }
