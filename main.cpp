@@ -24,7 +24,7 @@ int main()
     for(unsigned int i = 0; i < new_mesh->get_faces().size(); ++i)
     {
         Face *new_face = new_mesh->get_faces().at(i);
-        std::cout << "One half edge for face F: " << new_face->face_handle << " HE : " << new_face->one_half_edge->half_edge_handle << std::endl;
+        std::cout << "One half edge for face F: " << new_face->handle() << " HE : " << new_face->get_one_half_edge()->half_edge_handle << std::endl;
     }
     // Loop through vertices
     for(unsigned int i = 0; i < new_mesh->get_vertices().size(); ++i)

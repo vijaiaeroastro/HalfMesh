@@ -52,7 +52,7 @@ namespace HalfMesh
                 }
                 HalfEdge *new_half_edge = new HalfEdge(v1, v2);
                 new_half_edge->half_edge_handle = half_edge_handle;
-                new_half_edge->parent_face_handle = f1->face_handle;
+                new_half_edge->parent_face_handle = f1->handle();
                 if (vertex_to_half_edge_map.find(std::make_tuple(v2->id, v1->id)) != vertex_to_half_edge_map.end())
                 {
                     new_half_edge->opposing_half_edge = vertex_to_half_edge_map[std::make_tuple(v2->id,
@@ -133,7 +133,7 @@ namespace HalfMesh
                     face_handle = all_faces.size();
                 }
                 Face *new_face = new Face(v1, v2, v3);
-                new_face->face_handle = face_handle;
+                new_face->set_handle(face_handle);
                 all_faces.push_back(new_face);
                 vertices_to_face_handle_map[std::make_tuple(v1->id, v2->id, v3->id)] = face_handle;
                 std::cout << "---> New Face added with handle : " << face_handle << std::endl;
@@ -158,7 +158,7 @@ namespace HalfMesh
             {
                 Face *face = iter->first;
                 HalfEdge *halfEdge = iter->second;
-                face->one_half_edge = halfEdge;
+                face->set_one_half_edge(halfEdge);
             }
             for(auto iter = edge_to_one_half_edge_map.begin(); iter != edge_to_one_half_edge_map.end(); ++iter)
             {
@@ -215,20 +215,20 @@ namespace HalfMesh
     public:
         Face *get_face(unsigned int i)
         {
-            Face *new_face = NULL;
+            Face *new_face = NULL_FACE;
             if (face_handle_to_face_map.find(i) != face_handle_to_face_map.end())
             {
                 return face_handle_to_face_map[i];
             }
             else
             {
-                return NULL;
+                return new_face;
             }
         }
 
         Edge *get_edge(unsigned int i)
         {
-            Edge* new_edge = NULL;
+            Edge* new_edge = NULL_EDGE;
             if(edge_handle_to_edge_map.find(i) != edge_handle_to_edge_map.end())
             {
                 return edge_handle_to_edge_map[i];
@@ -241,7 +241,7 @@ namespace HalfMesh
 
         Vertex* get_vertex(unsigned int i)
         {
-            Vertex* new_vertex = NULL;
+            Vertex* new_vertex = NULL_VERTEX;
             if(vertex_handle_to_vertex_map.find(i) != vertex_handle_to_vertex_map.end())
             {
                 return vertex_handle_to_vertex_map[i];
@@ -254,7 +254,7 @@ namespace HalfMesh
 
         HalfEdge* get_half_edge(unsigned int i)
         {
-            HalfEdge* new_half_edge = NULL;
+            HalfEdge* new_half_edge = NULL_HALF_EDGE;
             if(half_edge_handle_to_half_edge_map.find(i) != half_edge_handle_to_half_edge_map.end())
             {
                 return half_edge_handle_to_half_edge_map[i];

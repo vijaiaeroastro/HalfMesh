@@ -13,7 +13,7 @@ namespace HalfMesh
             Edge(Vertex *_v1, Vertex *_v2):v1(_v1), v2(_v2){};
             Vertex *v1, *v2;
             unsigned int edge_handle;
-            HalfEdge *one_half_edge = NULL;
+            HalfEdge *one_half_edge = NULL_HALF_EDGE;
             bool boundary_edge = false;
 
     };
