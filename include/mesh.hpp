@@ -27,12 +27,16 @@ namespace HalfMesh
                 vertex_to_vertex_handle_map[new_vertex] = new_vertex_handle;
                 return_handle = new_vertex_handle;
                 vertex_handle_to_vertex_map[new_vertex_handle] = new_vertex;
+#ifndef NDEBUG
                 std::cout << "---> New Vertex added with handle : " << return_handle << std::endl;
+#endif
             }
             else
             {
                 return_handle = vertex_to_vertex_handle_map[new_vertex];
+#ifndef NDEBUG
                 std::cout << "---> A Vertex exists with handle : " << return_handle << std::endl;
+#endif
             }
             return vertex_handle_to_vertex_map[return_handle];
         }
@@ -65,12 +69,16 @@ namespace HalfMesh
                 half_edge_handle_to_half_edge_map[half_edge_handle] = new_half_edge;
                 face_to_one_half_edge_map[f1] = new_half_edge;
                 vertex_to_half_edge_map[std::make_tuple(v1->handle(), v2->handle())] = new_half_edge;
+#ifndef NDEBUG
                 std::cout << "--->--->---> New Half Edge added with handle : " << half_edge_handle << std::endl;
+#endif
             }
             else
             {
                 half_edge_handle = vertex_to_half_edge_map[std::make_tuple(v1->handle(), v2->handle())]->handle();
+#ifndef NDEBUG
                 std::cout << "--->--->---> A Half Edge exists with handle : " << half_edge_handle << std::endl;
+#endif
             }
             return half_edge_handle_to_half_edge_map[half_edge_handle];
         }
@@ -95,7 +103,9 @@ namespace HalfMesh
                     new_edge->set_handle(edge_handle);
                     all_edges.push_back(new_edge);
                     vertices_to_edge_handle_map[std::make_tuple(v1->handle(), v2->handle())] = edge_handle;
+#ifndef NDEBUG
                     std::cout << "--->---> New Edge added with handle : " << edge_handle << std::endl;
+#endif
                     edge_handle_to_edge_map[edge_handle] = new_edge;
                     HalfEdge *he = add_half_edge(v1, v2, f1);
                     he->set_parent_edge(edge_handle);
@@ -104,7 +114,9 @@ namespace HalfMesh
                 else
                 {
                     edge_handle = vertices_to_edge_handle_map[std::make_tuple(v2->handle(), v1->handle())];
+#ifndef NDEBUG
                     std::cout << "--->---> An Edge exists with handle : " << edge_handle << std::endl;
+#endif
                     Edge *existing_edge = edge_handle_to_edge_map[edge_handle];
                     HalfEdge *he = add_half_edge(v1, v2, f1);
                     he->set_parent_edge(edge_handle);
@@ -114,7 +126,9 @@ namespace HalfMesh
             else
             {
                 edge_handle = vertices_to_edge_handle_map[std::make_tuple(v1->handle(), v2->handle())];
+#ifndef NDEBUG
                 std::cout << "--->---> An Edge exists with handle : " << edge_handle << std::endl;
+#endif
             }
             return edge_handle_to_edge_map[edge_handle];
         }
@@ -137,7 +151,9 @@ namespace HalfMesh
                 new_face->set_handle(face_handle);
                 all_faces.push_back(new_face);
                 vertices_to_face_handle_map[std::make_tuple(v1->handle(), v2->handle(), v3->handle())] = face_handle;
+#ifndef NDEBUG
                 std::cout << "---> New Face added with handle : " << face_handle << std::endl;
+#endif
                 face_handle_to_face_map[face_handle] = new_face;
                 Edge *e1 = add_edge(v1, v2, new_face);
                 Edge *e2 = add_edge(v2, v3, new_face);
@@ -146,7 +162,9 @@ namespace HalfMesh
             else
             {
                 face_handle = vertices_to_face_handle_map[std::make_tuple(v1->handle(), v2->handle(), v3->handle())];
+#ifndef NDEBUG
                 std::cout << "---> A Face exists with handle : " << face_handle << std::endl;
+#endif
             }
             return face_handle_to_face_map[face_handle];
         }
