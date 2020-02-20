@@ -55,8 +55,9 @@ namespace HalfMesh
                 new_half_edge->set_parent_face(f1->handle());
                 if (vertex_to_half_edge_map.find(std::make_tuple(v2->handle(), v1->handle())) != vertex_to_half_edge_map.end())
                 {
-                    new_half_edge->set_opposing_half_edge(vertex_to_half_edge_map[std::make_tuple(v2->handle(),
-                                                                                                  v1->handle())]->handle());
+                    unsigned int existing_half_edge = vertex_to_half_edge_map[std::make_tuple(v2->handle(), v1->handle())]->handle();
+                    new_half_edge->set_opposing_half_edge(existing_half_edge);
+                    get_half_edge(existing_half_edge)->set_opposing_half_edge(new_half_edge->handle());
                 }
                 v1->add_outgoing_half_edge(half_edge_handle);
                 v2->add_incoming_half_edge(half_edge_handle);
@@ -103,11 +104,11 @@ namespace HalfMesh
                 else
                 {
                     edge_handle = vertices_to_edge_handle_map[std::make_tuple(v2->handle(), v1->handle())];
+                    std::cout << "--->---> An Edge exists with handle : " << edge_handle << std::endl;
                     Edge *existing_edge = edge_handle_to_edge_map[edge_handle];
                     HalfEdge *he = add_half_edge(v1, v2, f1);
                     he->set_parent_edge(edge_handle);
                     edge_to_one_half_edge_map[existing_edge] = he;
-                    std::cout << "--->---> An Edge exists with handle : " << edge_handle << std::endl;
                 }
             }
             else
