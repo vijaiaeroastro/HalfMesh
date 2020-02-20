@@ -8,13 +8,16 @@ int main()
     Vertex *v2 = new Vertex(1.0,0.0,0.0);
     Vertex *v3 = new Vertex(0.0,0.5,0.0);
     Vertex *v4 = new Vertex(1.5,0.5,0.0);
+    Vertex *v5 = new Vertex(2.5,0.0,0.0);
     new_mesh->add_vertex(v1);
     new_mesh->add_vertex(v2);
     new_mesh->add_vertex(v3);
     new_mesh->add_vertex(v4);
+    new_mesh->add_vertex(v5);
     // add face
     new_mesh->add_face(v1,v2,v3);
     new_mesh->add_face(v2,v4,v3);
+    new_mesh->add_face(v2,v5,v4);
     // Complete the mesh here
     new_mesh->complete_mesh();
     // Loop through half edges in a face
