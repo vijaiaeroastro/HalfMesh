@@ -8,13 +8,18 @@ namespace HalfMesh
 {
     class Mesh {
     public:
-        Vertex *add_vertex(Vertex *new_vertex) {
+        Vertex *add_vertex(Vertex *new_vertex)
+        {
             unsigned int return_handle;
-            if (vertex_to_vertex_handle_map.find(new_vertex) == vertex_to_vertex_handle_map.end()) {
+            if (vertex_to_vertex_handle_map.find(new_vertex) == vertex_to_vertex_handle_map.end())
+            {
                 unsigned int new_vertex_handle;
-                if (all_vertices.size() == 0) {
+                if (all_vertices.size() == 0)
+                {
                     new_vertex_handle = 0;
-                } else {
+                }
+                else
+                {
                     new_vertex_handle = all_vertices.size();
                 }
                 new_vertex->id = new_vertex_handle;
@@ -23,7 +28,9 @@ namespace HalfMesh
                 return_handle = new_vertex_handle;
                 vertex_handle_to_vertex_map[new_vertex_handle] = new_vertex;
                 std::cout << "---> New Vertex added with handle : " << return_handle << std::endl;
-            } else {
+            }
+            else
+            {
                 return_handle = vertex_to_vertex_handle_map[new_vertex];
                 std::cout << "---> A Vertex exists with handle : " << return_handle << std::endl;
             }
@@ -32,16 +39,21 @@ namespace HalfMesh
 
         HalfEdge *add_half_edge(Vertex *v1, Vertex *v2, Face *f1) {
             unsigned int half_edge_handle;
-            if (vertex_to_half_edge_map.find(std::make_tuple(v1->id, v2->id)) == vertex_to_half_edge_map.end()) {
-                if (all_half_edges.size() == 0) {
+            if (vertex_to_half_edge_map.find(std::make_tuple(v1->id, v2->id)) == vertex_to_half_edge_map.end())
+            {
+                if (all_half_edges.size() == 0)
+                {
                     half_edge_handle = 0;
-                } else {
+                }
+                else
+                {
                     half_edge_handle = all_half_edges.size();
                 }
                 HalfEdge *new_half_edge = new HalfEdge(v1, v2);
                 new_half_edge->half_edge_handle = half_edge_handle;
                 new_half_edge->parent_face_handle = f1->face_handle;
-                if (vertex_to_half_edge_map.find(std::make_tuple(v2->id, v1->id)) != vertex_to_half_edge_map.end()) {
+                if (vertex_to_half_edge_map.find(std::make_tuple(v2->id, v1->id)) != vertex_to_half_edge_map.end())
+                {
                     new_half_edge->opposing_half_edge = vertex_to_half_edge_map[std::make_tuple(v2->id,
                                                                                                 v1->id)]->half_edge_handle;
                 }
@@ -64,12 +76,16 @@ namespace HalfMesh
         Edge *add_edge(Vertex *v1, Vertex *v2, Face *f1) {
             unsigned int edge_handle;
             if (vertices_to_edge_handle_map.find(std::make_tuple(v1->id, v2->id)) ==
-                vertices_to_edge_handle_map.end()){
+                vertices_to_edge_handle_map.end())
+            {
                 if(vertices_to_edge_handle_map.find(std::make_tuple(v2->id, v1->id)) == vertices_to_edge_handle_map.end())
                 {
-                    if (all_edges.size() == 0) {
+                    if (all_edges.size() == 0)
+                    {
                         edge_handle = 0;
-                    } else {
+                    }
+                    else
+                    {
                         edge_handle = all_edges.size();
                     }
                     Edge *new_edge = new Edge(v1, v2);
@@ -91,7 +107,9 @@ namespace HalfMesh
                     edge_to_one_half_edge_map[existing_edge] = he;
                     std::cout << "--->---> An Edge exists with handle : " << edge_handle << std::endl;
                 }
-            } else {
+            }
+            else
+            {
                 edge_handle = vertices_to_edge_handle_map[std::make_tuple(v1->id, v2->id)];
                 std::cout << "--->---> An Edge exists with handle : " << edge_handle << std::endl;
             }
@@ -101,10 +119,14 @@ namespace HalfMesh
         Face *add_face(Vertex *v1, Vertex *v2, Vertex *v3) {
             unsigned int face_handle;
             if (vertices_to_face_handle_map.find(std::make_tuple(v1->id, v2->id, v3->id)) ==
-                vertices_to_face_handle_map.end()) {
-                if (all_faces.size() == 0) {
+                vertices_to_face_handle_map.end())
+            {
+                if (all_faces.size() == 0)
+                {
                     face_handle = 0;
-                } else {
+                }
+                else
+                {
                     face_handle = all_faces.size();
                 }
                 Face *new_face = new Face(v1, v2, v3);
@@ -116,7 +138,9 @@ namespace HalfMesh
                 Edge *e1 = add_edge(v1, v2, new_face);
                 Edge *e2 = add_edge(v2, v3, new_face);
                 Edge *e3 = add_edge(v3, v1, new_face);
-            } else {
+            }
+            else
+            {
                 face_handle = vertices_to_face_handle_map[std::make_tuple(v1->id, v2->id, v3->id)];
                 std::cout << "---> A Face exists with handle : " << face_handle << std::endl;
             }
@@ -125,7 +149,8 @@ namespace HalfMesh
 
 
     private:
-        void establish_connectivity() {
+        void establish_connectivity()
+        {
             for(auto iter = face_to_one_half_edge_map.begin(); iter != face_to_one_half_edge_map.end(); ++iter)
             {
                 Face *face = iter->first;
@@ -158,33 +183,42 @@ namespace HalfMesh
         }
 
     public:
-        void complete_mesh() {
+        void complete_mesh()
+        {
             establish_connectivity();
         }
 
     public:
-        std::vector<Face *> get_faces() {
+        std::vector<Face *> get_faces()
+        {
             return all_faces;
         }
 
-        std::vector<Edge *> get_edges() {
+        std::vector<Edge *> get_edges()
+        {
             return all_edges;
         }
 
-        std::vector<HalfEdge *> get_half_edges() {
+        std::vector<HalfEdge *> get_half_edges()
+        {
             return all_half_edges;
         }
 
-        std::vector<Vertex *> get_vertices() {
+        std::vector<Vertex *> get_vertices()
+        {
             return all_vertices;
         }
 
     public:
-        Face *get_face(unsigned int i) {
+        Face *get_face(unsigned int i)
+        {
             Face *new_face = NULL;
-            if (face_handle_to_face_map.find(i) != face_handle_to_face_map.end()) {
+            if (face_handle_to_face_map.find(i) != face_handle_to_face_map.end())
+            {
                 return face_handle_to_face_map[i];
-            } else {
+            }
+            else
+            {
                 return NULL;
             }
         }
