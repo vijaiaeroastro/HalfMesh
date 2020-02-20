@@ -11,6 +11,7 @@ namespace HalfMesh
     {
         public:
             Face(Vertex *_v1, Vertex *_v2, Vertex *_v3):v1(_v1), v2(_v2), v3(_v3){};
+            ~Face(){};
 
         public:
             void set_handle(unsigned int _i)
@@ -25,10 +26,7 @@ namespace HalfMesh
 
             void set_one_half_edge(HalfEdge* half_edge)
             {
-                if(one_half_edge != NULL_HALF_EDGE)
-                {
-                    one_half_edge = half_edge;
-                }
+                one_half_edge = half_edge;
             }
 
             HalfEdge* get_one_half_edge()

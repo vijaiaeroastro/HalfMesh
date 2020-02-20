@@ -24,20 +24,20 @@ int main()
     for(unsigned int i = 0; i < new_mesh->get_faces().size(); ++i)
     {
         Face *new_face = new_mesh->get_faces().at(i);
-        std::cout << "One half edge for face F: " << new_face->handle() << " HE : " << new_face->get_one_half_edge()->half_edge_handle << std::endl;
+        std::cout << "One half edge for face F: " << new_face->handle() << " HE : " << new_face->get_one_half_edge()->handle() << std::endl;
     }
     // Loop through vertices
     for(unsigned int i = 0; i < new_mesh->get_vertices().size(); ++i)
     {
         Vertex* new_vertex = new_mesh->get_vertices().at(i);
-        std::cout << "Vertex " << i+1 << " has " << new_vertex->incoming_half_edges.size() << " incoming half edges and " << new_vertex->outgoing_half_edges.size() << " outgoing half edges" << std::endl;
+        std::cout << "Vertex " << i+1 << " has " << new_vertex->get_incoming_half_edges().size() << " incoming half edges and " << new_vertex->get_outgoing_half_edges().size() << " outgoing half edges" << std::endl;
     }
     // Loop through edges and find boundaries
     unsigned int count = 0;
     for(unsigned int i = 0; i < new_mesh->get_edges().size(); ++i)
     {
         Edge* new_edge = new_mesh->get_edges().at(i);
-        if(new_edge->boundary_edge)
+        if(new_edge->is_boundary())
         {
             count = count + 1;
         }
@@ -47,7 +47,7 @@ int main()
     for(unsigned int i = 0; i < new_mesh->get_half_edges().size(); ++i)
     {
         HalfEdge* halfEdge = new_mesh->get_half_edges().at(i);
-        std::cout << "Is Boundary ( " << i << " ) : " << halfEdge->boundary_half_edge << std::endl;
+        std::cout << "Is Boundary ( " << i << " ) : " << halfEdge->is_boundary() << std::endl;
     }
     return 0;
 }
