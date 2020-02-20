@@ -1,8 +1,10 @@
+#pragma once
 #include <general.hpp>
 #include <vertex.hpp>
 #include <edge.hpp>
 #include <half_edge.hpp>
 #include <face.hpp>
+#include <property.hpp>
 
 namespace HalfMesh
 {
@@ -341,5 +343,6 @@ namespace HalfMesh
             std::unordered_map< Face*, HalfEdge* > face_to_one_half_edge_map;
             std::unordered_map< Edge*, HalfEdge* > edge_to_one_half_edge_map;
             twin_map_he_special vertex_to_half_edge_map;
+
     };   
 }
