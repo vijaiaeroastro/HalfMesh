@@ -168,10 +168,10 @@ namespace HalfMesh
             }
             for(unsigned int i = 0; i < all_half_edges.size(); ++i)
             {
-                HalfEdge *edge = all_half_edges.at(i);
-                if(edge->get_opposing_half_edge()  == std::numeric_limits<unsigned int>::max())
+                HalfEdge *half_edge = all_half_edges.at(i);
+                if(half_edge->get_opposing_half_edge()  == std::numeric_limits<unsigned int>::max())
                 {
-                    edge->set_boundary(true);
+                    half_edge->set_boundary(true);
                 }
             }
             for(unsigned int i = 0; i < all_edges.size(); ++i)
@@ -274,6 +274,10 @@ namespace HalfMesh
                 for(auto iter = outgoing_half_edges.begin(); iter != outgoing_half_edges.end(); ++iter)
                 {
                     HalfEdge* current_outgoing_half_edge = half_edge_handle_to_half_edge_map[*iter];
+                    if(current_outgoing_half_edge == input_half_edge)
+                    {
+                        continue;
+                    }
                     if(current_outgoing_half_edge->get_parent_face() == input_face->handle())
                     {
                         return_edge = current_outgoing_half_edge;
@@ -289,6 +293,10 @@ namespace HalfMesh
                 for(auto iter = incoming_half_edges.begin(); iter != incoming_half_edges.end(); ++iter)
                 {
                     HalfEdge* current_incoming_half_edge = half_edge_handle_to_half_edge_map[*iter];
+                    if(current_incoming_half_edge == input_half_edge)
+                    {
+                        continue;
+                    }
                     if(current_incoming_half_edge->get_parent_face() == input_face->handle())
                     {
                         return_edge = current_incoming_half_edge;

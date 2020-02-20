@@ -41,6 +41,10 @@ namespace HalfMesh
 
             unsigned int handle()
             {
+                if(this == NULL_EDGE)
+                {
+                    return std::numeric_limits<unsigned int>::max();
+                }
                 return edge_handle;
             }
 

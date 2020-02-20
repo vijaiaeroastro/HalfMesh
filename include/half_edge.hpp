@@ -31,7 +31,7 @@ namespace HalfMesh
 
             Vertex* get_vertex_two()
             {
-                return v1;
+                return v2;
             }
 
             void set_handle(unsigned int _i)
@@ -41,6 +41,10 @@ namespace HalfMesh
 
             unsigned int handle()
             {
+                if(this == NULL_HALF_EDGE)
+                {
+                    return std::numeric_limits<unsigned int>::max();
+                }
                 return half_edge_handle;
             }
 

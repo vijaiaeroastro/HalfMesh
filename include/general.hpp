@@ -51,4 +51,19 @@ namespace HalfMesh
             );
         }
     };
+
+    void print_set(std::unordered_set< unsigned int > _input_set)
+    {
+        std::string output;
+        output.append("   Set: {");
+        for(auto iter = _input_set.begin(); iter != _input_set.end(); ++iter)
+        {
+            output.append(std::to_string(*iter));
+            output.append(",");
+        }
+        output.pop_back();
+        output.append("}");
+        std::cout << output << std::endl;
+
+    }
 }

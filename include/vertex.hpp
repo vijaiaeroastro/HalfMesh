@@ -21,6 +21,10 @@ namespace HalfMesh
 
             unsigned int handle()
             {
+                if(this == NULL_VERTEX)
+                {
+                    return std::numeric_limits<unsigned int>::max();
+                }
                 return vertex_handle;
             }
 
