@@ -37,7 +37,8 @@ namespace HalfMesh
             return vertex_handle_to_vertex_map[return_handle];
         }
 
-        HalfEdge *add_half_edge(Vertex *v1, Vertex *v2, Face *f1) {
+        HalfEdge *add_half_edge(Vertex *v1, Vertex *v2, Face *f1)
+        {
             unsigned int half_edge_handle;
             if (vertex_to_half_edge_map.find(std::make_tuple(v1->id, v2->id)) == vertex_to_half_edge_map.end())
             {
@@ -73,7 +74,8 @@ namespace HalfMesh
             return half_edge_handle_to_half_edge_map[half_edge_handle];
         }
 
-        Edge *add_edge(Vertex *v1, Vertex *v2, Face *f1) {
+        Edge *add_edge(Vertex *v1, Vertex *v2, Face *f1)
+        {
             unsigned int edge_handle;
             if (vertices_to_edge_handle_map.find(std::make_tuple(v1->id, v2->id)) ==
                 vertices_to_edge_handle_map.end())
@@ -116,7 +118,8 @@ namespace HalfMesh
             return edge_handle_to_edge_map[edge_handle];
         }
 
-        Face *add_face(Vertex *v1, Vertex *v2, Vertex *v3) {
+        Face *add_face(Vertex *v1, Vertex *v2, Vertex *v3)
+        {
             unsigned int face_handle;
             if (vertices_to_face_handle_map.find(std::make_tuple(v1->id, v2->id, v3->id)) ==
                 vertices_to_face_handle_map.end())
