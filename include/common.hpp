@@ -10,10 +10,12 @@
 
 namespace HalfMesh
 {
-    struct Vertex;
-    struct Face;
-    struct Edge;
-    struct HalfEdge;
+    // Forward declaration of all classes
+    class Vertex;
+    class Face;
+    class Edge;
+    class HalfEdge;
+    class Mesh;
 
     // Some standard null pointers
     std::nullptr_t NULL_VERTEX;

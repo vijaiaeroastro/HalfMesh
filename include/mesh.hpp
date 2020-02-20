@@ -266,6 +266,37 @@ namespace HalfMesh
             }
         }
 
+        public:
+            HalfEdge* get_next_half_edge(HalfEdge* input_half_edge, Face* input_face)
+            {
+                HalfEdge* return_edge = NULL_HALF_EDGE;
+                std::unordered_set< unsigned int > outgoing_half_edges = input_half_edge->get_vertex_two()->get_outgoing_half_edges();
+                for(auto iter = outgoing_half_edges.begin(); iter != outgoing_half_edges.end(); ++iter)
+                {
+                    HalfEdge* current_outgoing_half_edge = half_edge_handle_to_half_edge_map[*iter];
+                    if(current_outgoing_half_edge->get_parent_face() == input_face->handle())
+                    {
+                        return_edge = current_outgoing_half_edge;
+                    }
+                }
+                return return_edge;
+            }
+
+            HalfEdge* get_previous_half_edge(HalfEdge* input_half_edge, Face* input_face)
+            {
+                HalfEdge* return_edge = NULL_HALF_EDGE;
+                std::unordered_set< unsigned int > incoming_half_edges = input_half_edge->get_vertex_one()->get_incoming_half_edges();
+                for(auto iter = incoming_half_edges.begin(); iter != incoming_half_edges.end(); ++iter)
+                {
+                    HalfEdge* current_incoming_half_edge = half_edge_handle_to_half_edge_map[*iter];
+                    if(current_incoming_half_edge->get_parent_face() == input_face->handle())
+                    {
+                        return_edge = current_incoming_half_edge;
+                    }
+                }
+                return return_edge;
+            }
+
         private:
             typedef std::unordered_map<const twin_type_t, unsigned int, twin_key_hash, twin_key_equal> special_map_twin;
             typedef std::unordered_map<const twin_type_t, HalfEdge*, twin_key_hash, twin_key_equal> twin_map_he_special;

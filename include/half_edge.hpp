@@ -49,9 +49,19 @@ namespace HalfMesh
                 parent_edge_handle = _i;
             }
 
+            unsigned int get_parent_edge()
+            {
+                return parent_edge_handle;
+            }
+
             void set_parent_face(unsigned int _i)
             {
                 parent_face_handle = _i;
+            }
+
+            unsigned int get_parent_face()
+            {
+                return parent_face_handle;
             }
 
             void set_boundary(bool _boundariness)
@@ -74,16 +84,6 @@ namespace HalfMesh
                 return opposing_half_edge;
             }
 
-            void set_next_half_edge(unsigned int _i)
-            {
-                next_half_edge = _i;
-            }
-
-            unsigned int get_next_half_edge()
-            {
-                return next_half_edge;
-            }
-
 
         private:
             Vertex *v1, *v2;
@@ -91,7 +91,6 @@ namespace HalfMesh
             unsigned int parent_edge_handle;
             unsigned int parent_face_handle;
             unsigned int opposing_half_edge = std::numeric_limits<unsigned int>::max();
-            unsigned int next_half_edge;
             bool boundary_half_edge;
     };
 }
