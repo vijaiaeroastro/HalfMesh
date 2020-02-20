@@ -1,11 +1,25 @@
 # HalfMesh
 A Simple and flexible half edge data structure
 
-This is my attempt at implementing a simple yet efficient half-edge data structure. It may not be perfect.
-But i welcome any suggestions. There is no point in reinventing the wheel. I am just doing thing for educational purposes.
-It might end up being something for more useful in future.
+This is a very simple Half Edge data structure implementation. It is currently only tailored for
+triangular meshes. However, its quite straightforward to modify them for general polygonal surfaces.
+Its quite easy to implement most of the surface algorithms such as
+* Mesh subdivision
+* Smoothing
+* Hole detection
+* Discrete curvature computation
+* Feature edge detection
+
+and so on..
+
 
 # Dependencies
 C++11 
 
-I will try to keep it free from clutter as much as possible and only depend on STL. But this may change in future.
+# License
+MIT
+
+# Notes
+I will try to keep it free from clutter as much as possible and only depend on STL. 
+But this may change in future. If you would like to see any specific geometry manipulation or
+repair algorithm implemented, i would be more than happy to add it here in future. Just contact me.
