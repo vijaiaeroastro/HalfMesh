@@ -210,7 +210,10 @@ namespace HalfMesh
     public:
         void complete_mesh()
         {
-            establish_connectivity();
+            if(all_faces.size() > 0)
+            {
+                establish_connectivity();
+            }
         }
 
     public:

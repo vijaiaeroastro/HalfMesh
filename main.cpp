@@ -1,7 +1,8 @@
 #include <mesh.hpp>
+#include <mesh_io.hpp>
 
 // Forward declaration of some functions
-HalfMesh::Mesh* create_mesh();
+void read_gmsh(HalfMesh::Mesh* mesh);
 void loop_through_half_edges_inside_a_face(HalfMesh::Mesh* mesh);
 void loop_through_vertices_in_a_mesh(HalfMesh::Mesh* mesh);
 void detect_boundary_edges(HalfMesh::Mesh* mesh);
@@ -9,12 +10,21 @@ void detect_boundary_half_edges(HalfMesh::Mesh* mesh);
 
 int main()
 {
-    HalfMesh::Mesh* new_mesh = create_mesh();
-    loop_through_vertices_in_a_mesh(new_mesh);
-    loop_through_half_edges_inside_a_face(new_mesh);
+//    HalfMesh::Mesh* new_mesh = create_mesh();
+//    loop_through_vertices_in_a_mesh(new_mesh);
+//    loop_through_half_edges_inside_a_face(new_mesh);
+//    detect_boundary_edges(new_mesh);
+//    detect_boundary_half_edges(new_mesh);
+    HalfMesh::Mesh* new_mesh = new HalfMesh::Mesh;
+    read_gmsh(new_mesh);
     detect_boundary_edges(new_mesh);
-    detect_boundary_half_edges(new_mesh);
     return 0;
+}
+
+void read_gmsh(HalfMesh::Mesh* mesh)
+{
+    HalfMesh::MeshIO *io_mesh = new HalfMesh::MeshIO;
+    io_mesh->read_mesh(mesh, "/home/vijai.kumar/Codes/HalfMesh/data/plate.msh", HalfMesh::MESH_TYPE::GMSH);
 }
 
 HalfMesh::Mesh* create_mesh()

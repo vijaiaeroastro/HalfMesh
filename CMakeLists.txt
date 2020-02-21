@@ -11,6 +11,7 @@ set(HDRS include/common.hpp
          include/general.hpp
          include/half_edge.hpp
          include/mesh.hpp
+         include/mesh_io.hpp
          include/vertex.hpp
          include/property.hpp)
 

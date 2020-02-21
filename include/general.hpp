@@ -66,4 +66,45 @@ namespace HalfMesh
         std::cout << output << std::endl;
 
     }
+
+    static inline bool is_substring(const std::string &input_string, const std::string &sub_string)
+    {
+        std::size_t found = input_string.find(sub_string);
+        if (found != std::string::npos)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    static inline std::vector<std::string> split_string(const std::string &str, const std::string &delim, const bool trim_empty = false)
+    {
+        size_t pos, last_pos = 0, len;
+        std::vector<std::string> tokens;
+        while(true)
+        {
+            pos = str.find(delim, last_pos);
+            if (pos == std::string::npos)
+            {
+                pos = str.size();
+            }
+            len = pos-last_pos;
+            if ( !trim_empty || len != 0)
+            {
+                tokens.push_back(str.substr(last_pos, len));
+            }
+            if (pos == str.size())
+            {
+                break;
+            }
+            else
+            {
+                last_pos = pos + delim.size();
+            }
+        }
+        return tokens;
+    }
 }

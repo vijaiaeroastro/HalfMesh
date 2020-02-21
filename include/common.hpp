@@ -22,4 +22,11 @@ namespace HalfMesh
     std::nullptr_t NULL_FACE;
     std::nullptr_t NULL_EDGE;
     std::nullptr_t NULL_HALF_EDGE;
+
+    // Enum's for Mesh IO
+    enum MESH_TYPE
+    {
+        GMSH,
+        OBJ
+    };
 }
