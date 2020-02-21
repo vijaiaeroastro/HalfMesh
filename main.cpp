@@ -17,14 +17,16 @@ int main()
 //    detect_boundary_half_edges(new_mesh);
     HalfMesh::Mesh* new_mesh = new HalfMesh::Mesh;
     read_gmsh(new_mesh);
+//    loop_through_half_edges_inside_a_face(new_mesh);
     detect_boundary_edges(new_mesh);
+    detect_boundary_half_edges(new_mesh);
     return 0;
 }
 
 void read_gmsh(HalfMesh::Mesh* mesh)
 {
     HalfMesh::MeshIO *io_mesh = new HalfMesh::MeshIO;
-    io_mesh->read_mesh(mesh, "/home/vijai.kumar/Codes/HalfMesh/data/plate.msh", HalfMesh::MESH_TYPE::GMSH);
+    io_mesh->read_mesh(mesh, "/home/vijai.kumar/Codes/HalfMesh/data/l_domain.msh", HalfMesh::MESH_TYPE::GMSH);
 }
 
 HalfMesh::Mesh* create_mesh()

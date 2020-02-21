@@ -194,16 +194,24 @@ namespace HalfMesh
                 {
                     half_edge->set_boundary(true);
                 }
+                else
+                {
+                    half_edge->set_boundary(false);
+                }
             }
             for(unsigned int i = 0; i < all_edges.size(); ++i)
             {
                 Edge *edge = all_edges.at(i);
                 HalfEdge *halfEdge = edge->get_one_half_edge();
-
                 if(halfEdge->is_boundary())
                 {
                     edge->set_boundary(true);
                 }
+                else
+                {
+                    edge->set_boundary(false);
+                }
+
             }
         }
 
