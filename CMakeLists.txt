@@ -13,6 +13,6 @@ set(HDRS include/common.hpp
          include/mesh.hpp
          include/mesh_io.hpp
          include/vertex.hpp
-         include/property.hpp)
+         include/json.hpp)
 
 add_executable(HalfMesh main.cpp ${HDRS})

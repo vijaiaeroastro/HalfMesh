@@ -2,62 +2,69 @@
 #include <mesh_io.hpp>
 
 // Forward declaration of some functions
-void read_gmsh(HalfMesh::Mesh* mesh);
-void loop_through_half_edges_inside_a_face(HalfMesh::Mesh* mesh);
-void loop_through_vertices_in_a_mesh(HalfMesh::Mesh* mesh);
-void detect_boundary_edges(HalfMesh::Mesh* mesh);
-void detect_boundary_half_edges(HalfMesh::Mesh* mesh);
+void read_gmsh(HalfMesh::Mesh *mesh);
 
-int main()
-{
-//    HalfMesh::Mesh* new_mesh = create_mesh();
-//    loop_through_vertices_in_a_mesh(new_mesh);
-//    loop_through_half_edges_inside_a_face(new_mesh);
-//    detect_boundary_edges(new_mesh);
-//    detect_boundary_half_edges(new_mesh);
-    HalfMesh::Mesh* new_mesh = new HalfMesh::Mesh;
+void loop_through_half_edges_inside_a_face(HalfMesh::Mesh *mesh);
+
+void loop_through_vertices_in_a_mesh(HalfMesh::Mesh *mesh);
+
+void detect_boundary_edges(HalfMesh::Mesh *mesh);
+
+void detect_boundary_half_edges(HalfMesh::Mesh *mesh);
+
+int main() {
+    HalfMesh::Mesh *new_mesh = new HalfMesh::Mesh;
     read_gmsh(new_mesh);
-//    loop_through_half_edges_inside_a_face(new_mesh);
-    detect_boundary_edges(new_mesh);
-    detect_boundary_half_edges(new_mesh);
+    std::cout << new_mesh->get_vertices().size() << std::endl;
+    new_mesh->add_vertex_property< int >("PSEUDO_ID", 1);
+    new_mesh->add_edge_property< std::string >("EDGE_TEST", std::string("BLABLA"));
+    std::vector< unsigned int > face_test;
+    face_test.push_back(1);
+    face_test.push_back(2);
+    face_test.push_back(3);
+    new_mesh->add_face_property< std::vector< unsigned int > >("FACE_PLANT", face_test);
+    std::vector< unsigned int > face_collect_test = new_mesh->get_face_property< std::vector< unsigned int > >("FACE_PLANT", 5);
+    for(auto i : face_collect_test)
+    {
+        std::cout << i << std::endl;
+    }
+    new_mesh->save_properties("blabla.json");
     return 0;
 }
 
-void read_gmsh(HalfMesh::Mesh* mesh)
-{
+
+void read_gmsh(HalfMesh::Mesh *mesh) {
     HalfMesh::MeshIO *io_mesh = new HalfMesh::MeshIO;
     io_mesh->read_mesh(mesh, "/home/vijai.kumar/Codes/HalfMesh/data/l_domain.msh", HalfMesh::MESH_TYPE::GMSH);
 }
 
-HalfMesh::Mesh* create_mesh()
-{
+HalfMesh::Mesh *create_mesh() {
     HalfMesh::Mesh *new_mesh = new HalfMesh::Mesh;
-    HalfMesh::Vertex *v1 = new HalfMesh::Vertex(0.0,0.0,0.0);
-    HalfMesh::Vertex *v2 = new HalfMesh::Vertex(1.0,0.0,0.0);
-    HalfMesh::Vertex *v3 = new HalfMesh::Vertex(0.0,0.5,0.0);
-    HalfMesh::Vertex *v4 = new HalfMesh::Vertex(1.5,0.5,0.0);
-    HalfMesh::Vertex *v5 = new HalfMesh::Vertex(2.5,0.0,0.0);
+    HalfMesh::Vertex *v1 = new HalfMesh::Vertex(0.0, 0.0, 0.0);
+    HalfMesh::Vertex *v2 = new HalfMesh::Vertex(1.0, 0.0, 0.0);
+    HalfMesh::Vertex *v3 = new HalfMesh::Vertex(0.0, 0.5, 0.0);
+    HalfMesh::Vertex *v4 = new HalfMesh::Vertex(1.5, 0.5, 0.0);
+    HalfMesh::Vertex *v5 = new HalfMesh::Vertex(2.5, 0.0, 0.0);
     new_mesh->add_vertex(v1);
     new_mesh->add_vertex(v2);
     new_mesh->add_vertex(v3);
     new_mesh->add_vertex(v4);
     new_mesh->add_vertex(v5);
     // add face
-    new_mesh->add_face(v1,v2,v3);
-    new_mesh->add_face(v2,v4,v3);
-    new_mesh->add_face(v2,v5,v4);
+    new_mesh->add_face(v1, v2, v3);
+    new_mesh->add_face(v2, v4, v3);
+    new_mesh->add_face(v2, v5, v4);
     // Complete the mesh here
     new_mesh->complete_mesh();
     return new_mesh;
 }
 
-void loop_through_half_edges_inside_a_face(HalfMesh::Mesh* new_mesh)
-{
+void loop_through_half_edges_inside_a_face(HalfMesh::Mesh *new_mesh) {
     // Loop through half edges in a face
-    for(unsigned int i = 0; i < new_mesh->get_faces().size(); ++i)
-    {
+    for (unsigned int i = 0; i < new_mesh->get_faces().size(); ++i) {
         HalfMesh::Face *new_face = new_mesh->get_faces().at(i);
-        std::cout << "One half edge for face F: " << new_face->handle() << " HE : " << new_face->get_one_half_edge()->handle() << std::endl;
+        std::cout << "One half edge for face F: " << new_face->handle() << " HE : "
+                  << new_face->get_one_half_edge()->handle() << std::endl;
         unsigned int he_1, he_2, he_3, he_4;
         he_1 = new_face->get_one_half_edge()->handle();
         he_2 = new_mesh->get_next_half_edge(new_mesh->get_half_edge(he_1), new_face)->handle();
@@ -67,42 +74,36 @@ void loop_through_half_edges_inside_a_face(HalfMesh::Mesh* new_mesh)
     }
 }
 
-void loop_through_vertices_in_a_mesh(HalfMesh::Mesh* new_mesh)
-{
+void loop_through_vertices_in_a_mesh(HalfMesh::Mesh *new_mesh) {
     // Loop through vertices
-    for(unsigned int i = 0; i < new_mesh->get_vertices().size(); ++i)
-    {
-        HalfMesh::Vertex* new_vertex = new_mesh->get_vertices().at(i);
-        std::cout << "Vertex " << i+1 << " has " << new_vertex->get_incoming_half_edges().size() << " incoming half edges and " << new_vertex->get_outgoing_half_edges().size() << " outgoing half edges" << std::endl;
+    for (unsigned int i = 0; i < new_mesh->get_vertices().size(); ++i) {
+        HalfMesh::Vertex *new_vertex = new_mesh->get_vertices().at(i);
+        std::cout << "Vertex " << i + 1 << " has " << new_vertex->get_incoming_half_edges().size()
+                  << " incoming half edges and " << new_vertex->get_outgoing_half_edges().size()
+                  << " outgoing half edges" << std::endl;
         HalfMesh::print_set(new_vertex->get_outgoing_half_edges());
         HalfMesh::print_set(new_vertex->get_incoming_half_edges());
     }
 }
 
-void detect_boundary_edges(HalfMesh::Mesh* new_mesh)
-{
+void detect_boundary_edges(HalfMesh::Mesh *new_mesh) {
     // Loop through edges and find boundaries
     unsigned int count = 0;
-    for(unsigned int i = 0; i < new_mesh->get_edges().size(); ++i)
-    {
-        HalfMesh::Edge* new_edge = new_mesh->get_edges().at(i);
-        if(new_edge->is_boundary())
-        {
+    for (unsigned int i = 0; i < new_mesh->get_edges().size(); ++i) {
+        HalfMesh::Edge *new_edge = new_mesh->get_edges().at(i);
+        if (new_edge->is_boundary()) {
             count = count + 1;
         }
     }
     std::cout << "There is a total of " << count << " boundary edges in this mesh" << std::endl;
 }
 
-void detect_boundary_half_edges(HalfMesh::Mesh* new_mesh)
-{
+void detect_boundary_half_edges(HalfMesh::Mesh *new_mesh) {
     // Loop through half edges and find boundaries
     unsigned int count = 0;
-    for(unsigned int i = 0; i < new_mesh->get_half_edges().size(); ++i)
-    {
-        HalfMesh::HalfEdge* halfEdge = new_mesh->get_half_edges().at(i);
-        if(halfEdge->is_boundary())
-        {
+    for (unsigned int i = 0; i < new_mesh->get_half_edges().size(); ++i) {
+        HalfMesh::HalfEdge *halfEdge = new_mesh->get_half_edges().at(i);
+        if (halfEdge->is_boundary()) {
             count = count + 1;
         }
     }

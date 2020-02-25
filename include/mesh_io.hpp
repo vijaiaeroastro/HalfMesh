@@ -5,7 +5,6 @@
 #include <half_edge.hpp>
 #include <face.hpp>
 #include <mesh.hpp>
-#include <property.hpp>
 #include <fstream>
 #include <sstream>
 
