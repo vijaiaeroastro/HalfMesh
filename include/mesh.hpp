@@ -182,19 +182,15 @@ namespace HalfMesh {
         }
 
     public:
-        std::vector< std::vector< unsigned int > > get_edge_loops(std::string property_name)
-        {
-            std::vector< Edge* > property_search_space;
-            for(unsigned int i = 0; i < all_edges.size(); ++i)
-            {
-                if(edge_data_store[property_name][i])
-                {
+        std::vector<std::vector<unsigned int> > get_edge_loops(std::string property_name) {
+            std::vector<Edge *> property_search_space;
+            for (unsigned int i = 0; i < all_edges.size(); ++i) {
+                if (edge_data_store[property_name][i]) {
                     property_search_space.push_back(all_edges.at(i));
                 }
             }
-            for(unsigned int i = 0; i < property_search_space.size(); ++i)
-            {
-                
+            for (unsigned int i = 0; i < property_search_space.size(); ++i) {
+
             }
         }
 
@@ -243,7 +239,6 @@ namespace HalfMesh {
             half_edge_data_store.clear();
             face_data_store.clear();
         }
-
 
 
     public:
@@ -602,21 +597,23 @@ namespace HalfMesh {
 
 
     private:
-        typedef std::unordered_map<const twin_type_t, unsigned int, twin_key_hash, twin_key_equal> special_map_twin;
-        typedef std::unordered_map<const twin_type_t, HalfEdge *, twin_key_hash, twin_key_equal> twin_map_he_special;
         std::vector<Face *> all_faces;
         std::vector<Edge *> all_edges;
         std::vector<HalfEdge *> all_half_edges;
         std::vector<Vertex *> all_vertices;
         std::unordered_map<Vertex *, unsigned int> vertex_to_vertex_handle_map;
-        special_map_three vertices_to_face_handle_map;
-        special_map_twin vertices_to_edge_handle_map;
         std::unordered_map<unsigned int, Vertex *> vertex_handle_to_vertex_map;
         std::unordered_map<unsigned int, Edge *> edge_handle_to_edge_map;
         std::unordered_map<unsigned int, HalfEdge *> half_edge_handle_to_half_edge_map;
         std::unordered_map<unsigned int, Face *> face_handle_to_face_map;
         std::unordered_map<Face *, HalfEdge *> face_to_one_half_edge_map;
         std::unordered_map<Edge *, HalfEdge *> edge_to_one_half_edge_map;
+
+    private:
+        typedef std::unordered_map<const twin_type_t, unsigned int, twin_key_hash, twin_key_equal> special_map_twin;
+        typedef std::unordered_map<const twin_type_t, HalfEdge *, twin_key_hash, twin_key_equal> twin_map_he_special;
+        special_map_three vertices_to_face_handle_map;
+        special_map_twin vertices_to_edge_handle_map;
         twin_map_he_special vertex_to_half_edge_map;
 
     private:
