@@ -8,7 +8,6 @@
 #include <json.hpp>
 #include <fstream>
 
-class json;
 namespace HalfMesh {
     class Mesh {
     public:
