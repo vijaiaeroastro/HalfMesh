@@ -183,6 +183,23 @@ namespace HalfMesh {
         }
 
     public:
+        std::vector< std::vector< unsigned int > > get_edge_loops(std::string property_name)
+        {
+            std::vector< Edge* > property_search_space;
+            for(unsigned int i = 0; i < all_edges.size(); ++i)
+            {
+                if(edge_data_store[property_name][i])
+                {
+                    property_search_space.push_back(all_edges.at(i));
+                }
+            }
+            for(unsigned int i = 0; i < property_search_space.size(); ++i)
+            {
+                
+            }
+        }
+
+    public:
         void complete_mesh() {
             if (all_faces.size() > 0) {
                 establish_connectivity();
@@ -227,6 +244,8 @@ namespace HalfMesh {
             half_edge_data_store.clear();
             face_data_store.clear();
         }
+
+
 
     public:
         Face *get_face(unsigned int i) {
