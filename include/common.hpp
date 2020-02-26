@@ -8,6 +8,7 @@
 #include <vector>
 #include <limits>
 #include <cstddef>
+#include <strutil.hpp>
 
 namespace HalfMesh {
     // Forward declaration of all classes
@@ -30,8 +31,10 @@ namespace HalfMesh {
 
     // Enum's for Mesh IO
     enum MESH_TYPE {
-        GMSH,
-        OBJ
+        GMSH = 100,
+        OBJ = 200,
+        BINARY_MESH = 300,
+        UNKNOWN = 400
     };
 
     // Enum for mesh identities

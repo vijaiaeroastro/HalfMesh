@@ -12,6 +12,10 @@ class json;
 namespace HalfMesh {
     class Mesh {
     public:
+        Mesh() { clear(); };
+
+        ~Mesh() { clear(); };
+    public:
         Vertex *add_vertex(Vertex *new_vertex) {
             unsigned int return_handle;
             if (vertex_to_vertex_handle_map.find(new_vertex) == vertex_to_vertex_handle_map.end()) {
@@ -202,6 +206,28 @@ namespace HalfMesh {
             return all_vertices;
         }
 
+    private:
+        void clear() {
+            all_faces.clear();
+            all_edges.clear();
+            all_half_edges.clear();
+            all_vertices.clear();
+            vertex_to_vertex_handle_map.clear();
+            vertices_to_face_handle_map.clear();
+            vertices_to_edge_handle_map.clear();
+            vertex_handle_to_vertex_map.clear();
+            edge_handle_to_edge_map.clear();
+            half_edge_handle_to_half_edge_map.clear();
+            face_handle_to_face_map.clear();
+            face_to_one_half_edge_map.clear();
+            edge_to_one_half_edge_map.clear();
+            vertex_to_half_edge_map.clear();
+            vertex_data_store.clear();
+            edge_data_store.clear();
+            half_edge_data_store.clear();
+            face_data_store.clear();
+        }
+
     public:
         Face *get_face(unsigned int i) {
             Face *new_face = NULL_FACE;
@@ -359,71 +385,201 @@ namespace HalfMesh {
         }
 
     public:
-        template< typename T >
-        void set_vertex_property(std::string property_name, unsigned int handle, T value)
-        {
+        template<typename T>
+        void set_vertex_property(std::string property_name, unsigned int handle, T value) {
             vertex_data_store[property_name][handle] = value;
         }
 
-        template< typename T >
-        void set_edge_property(std::string property_name, unsigned int handle, T value)
-        {
+        template<typename T>
+        void set_edge_property(std::string property_name, unsigned int handle, T value) {
             edge_data_store[property_name][handle] = value;
         }
 
-        template< typename T >
-        void set_half_edge_property(std::string property_name, unsigned int handle, T value)
-        {
+        template<typename T>
+        void set_half_edge_property(std::string property_name, unsigned int handle, T value) {
             half_edge_data_store[property_name][handle] = value;
         }
 
-        template< typename T >
-        void set_face_property(std::string property_name, unsigned int handle, T value)
-        {
+        template<typename T>
+        void set_face_property(std::string property_name, unsigned int handle, T value) {
             face_data_store[property_name][handle] = value;
         }
 
     public:
-        template< typename T >
-        T get_vertex_property(std::string property_name, unsigned int handle)
-        {
+        template<typename T>
+        T get_vertex_property(std::string property_name, unsigned int handle) {
             return vertex_data_store[property_name][handle];
         }
 
-        template< typename T >
-        T get_edge_property(std::string property_name, unsigned int handle)
-        {
+        template<typename T>
+        T get_edge_property(std::string property_name, unsigned int handle) {
             return edge_data_store[property_name][handle];
         }
 
 
-        template< typename T >
-        T get_half_edge_property(std::string property_name, unsigned int handle)
-        {
+        template<typename T>
+        T get_half_edge_property(std::string property_name, unsigned int handle) {
             return half_edge_data_store[property_name][handle];
         }
 
 
-        template< typename T >
-        T get_face_property(std::string property_name, unsigned int handle)
-        {
+        template<typename T>
+        T get_face_property(std::string property_name, unsigned int handle) {
             return face_data_store[property_name][handle];
         }
 
     public:
-        void save_properties(const std::string json_file_name)
-        {
+        void save(const std::string mesh_name) {
+            MESH_TYPE current_mesh_type = guess_mesh_format(mesh_name);
+            if (current_mesh_type == MESH_TYPE::BINARY_MESH) {
+                write_binary_mesh(mesh_name);
+            } else if (current_mesh_type == MESH_TYPE::GMSH) {
+                write_gmsh(mesh_name);
+            } else if (current_mesh_type == MESH_TYPE::OBJ) {
+                write_obj(mesh_name);
+            } else {
+                std::cout << "Unknown data type. Use GMSH / OBJ / BM mesh formats" << std::endl;
+            }
+        }
+
+        void read(const std::string mesh_name) {
+            MESH_TYPE current_mesh_type = guess_mesh_format(mesh_name);
+            if (current_mesh_type == MESH_TYPE::BINARY_MESH) {
+                read_binary_mesh(mesh_name);
+            } else if (current_mesh_type == MESH_TYPE::GMSH) {
+                read_gmsh(mesh_name);
+            } else if (current_mesh_type == MESH_TYPE::OBJ) {
+                read_obj(mesh_name);
+            } else {
+                std::cout << "Unknown data type. Use GMSH / OBJ / BM mesh formats" << std::endl;
+            }
+        }
+
+    private:
+        void read_gmsh(const std::string mesh_name) {
+#ifndef NDEBUG
+            std::cout << "---> GMSH READER " << mesh_name << std::endl;
+#endif
+            clear();
+            std::ifstream gmsh_file(mesh_name);
+            std::string current_line;
+            bool begin_vertex_data = false;
+            bool begin_face_data = false;
+            std::unordered_map<unsigned int, Vertex *> vertex_handle_to_vertex_map;
+            while (std::getline(gmsh_file, current_line)) {
+                if (is_substring(current_line, "$Nodes")) {
+                    begin_vertex_data = true;
+                }
+                if (is_substring(current_line, "$EndNodes")) {
+                    begin_vertex_data = false;
+                }
+                if (is_substring(current_line, "$Elements")) {
+                    begin_face_data = true;
+                }
+                if (is_substring(current_line, "$EndElements")) {
+                    begin_face_data = false;
+                }
+                if (begin_vertex_data) {
+                    std::istringstream iss(current_line);
+                    int vertex_counter;
+                    double x, y, z;
+                    if ((iss >> vertex_counter >> x >> y >> z)) {
+                        Vertex *vertex = new Vertex(x, y, z);
+                        add_vertex(vertex);
+                        vertex_handle_to_vertex_map[vertex->handle() + 1] = vertex;
+                    }
+                }
+                if (begin_face_data) {
+                    std::vector<std::string> split_lines = split_string(current_line, " ", true);
+                    if (split_lines.size() > 1) {
+                        if (split_lines.at(1) == "2") {
+                            unsigned int v1 = atoi(split_lines.at(split_lines.size() - 3).c_str());
+                            unsigned int v2 = atoi(split_lines.at(split_lines.size() - 2).c_str());
+                            unsigned int v3 = atoi(split_lines.at(split_lines.size() - 1).c_str());
+                            add_face(vertex_handle_to_vertex_map[v1], vertex_handle_to_vertex_map[v2],
+                                     vertex_handle_to_vertex_map[v3]);
+                        }
+
+                    }
+                }
+            }
+            complete_mesh();
+        }
+
+        void read_binary_mesh(const std::string mesh_name) {
+#ifndef NDEBUG
+            std::cout << "---> BINARY MESH READER " << mesh_name << std::endl;
+#endif
+            clear();
+            using json = nlohmann::json;
+            std::ifstream stream(mesh_name, std::ios::in | std::ios::binary);
+            std::vector<uint8_t> contents((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+            json binary_json = json::from_bson(contents);
+            json json_vertices = binary_json["VERTICES"];
+            for (json::iterator it = json_vertices.begin(); it != json_vertices.end(); ++it) {
+                Vertex *vertex = new Vertex((*it)[0], (*it)[1], (*it)[2]);
+                add_vertex(vertex);
+            }
+            nlohmann::json json_faces = binary_json["FACES"];
+            for (json::iterator it = json_faces.begin(); it != json_faces.end(); ++it) {
+                unsigned int f1, f2, f3;
+                f1 = (*it)[0];
+                f2 = (*it)[1];
+                f3 = (*it)[2];
+                add_face(get_vertex(f1), get_vertex(f2), get_vertex(f3));
+            }
+            vertex_data_store = binary_json["VERTEX_PROPERTIES"];
+            edge_data_store = binary_json["EDGE_PROPERTIES"];
+            half_edge_data_store = binary_json["HALF_EDGE_PROPERTIES"];
+            face_data_store = binary_json["FACE_PROPERTIES"];
+            complete_mesh();
+        }
+
+        void read_obj(const std::string mesh_name) {
+#ifndef NDEBUG
+            std::cout << "---> OBJ READER " << mesh_name << std::endl;
+#endif
+            clear();
+        }
+
+    private:
+        void write_gmsh(const std::string mesh_name) {
+#ifndef NDEBUG
+            std::cout << "---> GMSH WRITER " << mesh_name << std::endl;
+#endif
+        }
+
+        void write_binary_mesh(const std::string mesh_name) {
+#ifndef NDEBUG
+            std::cout << "---> BINARY MESH WRITER " << mesh_name << std::endl;
+#endif
             nlohmann::json combined_json_file;
-            combined_json_file["VERTEX"] = vertex_data_store;
-            combined_json_file["EDGE"] = edge_data_store;
-            combined_json_file["HALF_EDGE"] = half_edge_data_store;
-            combined_json_file["FACE"] = face_data_store;
-            std::string combined_json_string = combined_json_file.dump(4);
-            std::remove(json_file_name.c_str());
-            std::ofstream json_file;
-            json_file.open(json_file_name);
-            json_file << combined_json_string;
-            json_file.close();
+            for (unsigned int i = 0; i < all_vertices.size(); ++i) {
+                Vertex *current_vertex = all_vertices.at(i);
+                combined_json_file["VERTICES"][i] = {current_vertex->get_x(), current_vertex->get_y(),
+                                                     current_vertex->get_z()};
+            }
+            for (unsigned int i = 0; i < all_faces.size(); ++i) {
+                Face *current_face = all_faces.at(i);
+                combined_json_file["FACES"][i] = {current_face->get_vertex_one()->handle(),
+                                                  current_face->get_vertex_two()->handle(),
+                                                  current_face->get_vertex_three()->handle()};
+            }
+            combined_json_file["VERTEX_PROPERTIES"] = vertex_data_store;
+            combined_json_file["EDGE_PROPERTIES"] = edge_data_store;
+            combined_json_file["HALF_EDGE_PROPERTIES"] = half_edge_data_store;
+            combined_json_file["FACE_PROPERTIES"] = face_data_store;
+            std::remove(mesh_name.c_str());
+            std::vector<std::uint8_t> v_bson = nlohmann::json::to_bson(combined_json_file);
+            std::ofstream mesh_output(mesh_name, std::ios::out | std::ios::binary);
+            mesh_output.write((char *) &v_bson[0], v_bson.size() * sizeof(std::uint8_t));
+            mesh_output.close();
+        }
+
+        void write_obj(const std::string mesh_name) {
+#ifndef NDEBUG
+            std::cout << "---> OBJ MESH WRITER " << mesh_name << std::endl;
+#endif
         }
 
 

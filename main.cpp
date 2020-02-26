@@ -1,8 +1,6 @@
 #include <mesh.hpp>
-#include <mesh_io.hpp>
 
 // Forward declaration of some functions
-void read_gmsh(HalfMesh::Mesh *mesh);
 
 void loop_through_half_edges_inside_a_face(HalfMesh::Mesh *mesh);
 
@@ -13,29 +11,13 @@ void detect_boundary_edges(HalfMesh::Mesh *mesh);
 void detect_boundary_half_edges(HalfMesh::Mesh *mesh);
 
 int main() {
-    HalfMesh::Mesh *new_mesh = new HalfMesh::Mesh;
-    read_gmsh(new_mesh);
-    std::cout << new_mesh->get_vertices().size() << std::endl;
-    new_mesh->add_vertex_property< int >("PSEUDO_ID", 1);
-    new_mesh->add_edge_property< std::string >("EDGE_TEST", std::string("BLABLA"));
-    std::vector< unsigned int > face_test;
-    face_test.push_back(1);
-    face_test.push_back(2);
-    face_test.push_back(3);
-    new_mesh->add_face_property< std::vector< unsigned int > >("FACE_PLANT", face_test);
-    std::vector< unsigned int > face_collect_test = new_mesh->get_face_property< std::vector< unsigned int > >("FACE_PLANT", 5);
-    for(auto i : face_collect_test)
-    {
-        std::cout << i << std::endl;
-    }
-    new_mesh->save_properties("blabla.json");
+    HalfMesh::Mesh *new_mesh = new HalfMesh::Mesh();
+    new_mesh->read("blabla.bm");
+    std::cout << "Edges : " << new_mesh->get_edges().size() << std::endl;
+    std::cout << "Half Edges : " << new_mesh->get_half_edges().size() << std::endl;
+    loop_through_vertices_in_a_mesh(new_mesh);
+    detect_boundary_edges(new_mesh);
     return 0;
-}
-
-
-void read_gmsh(HalfMesh::Mesh *mesh) {
-    HalfMesh::MeshIO *io_mesh = new HalfMesh::MeshIO;
-    io_mesh->read_mesh(mesh, "/home/vijai.kumar/Codes/HalfMesh/data/l_domain.msh", HalfMesh::MESH_TYPE::GMSH);
 }
 
 HalfMesh::Mesh *create_mesh() {

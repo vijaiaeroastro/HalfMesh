@@ -87,4 +87,18 @@ namespace HalfMesh {
         }
         return tokens;
     }
+
+    MESH_TYPE guess_mesh_format(const std::string input_string_name) {
+        strutil::to_lower(input_string_name);
+        std::cout << input_string_name << std::endl;
+        if (strutil::ends_with(input_string_name, ".msh")) {
+            return MESH_TYPE::GMSH;
+        } else if (strutil::ends_with(input_string_name, ".obj")) {
+            return MESH_TYPE::OBJ;
+        } else if (strutil::ends_with(input_string_name, ".bm")) {
+            return MESH_TYPE::BINARY_MESH;
+        } else {
+            return MESH_TYPE::UNKNOWN;
+        }
+    }
 }
