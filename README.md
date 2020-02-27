@@ -12,6 +12,11 @@ Its quite easy to implement most of the surface algorithms such as
 
 and so on..
 
+It has a simple property store based on JSON. It allows one to assign property to
+vertex / edge / face in a mesh. There is a custom mesh format which uses bson and it has an
+extension **.bm**. This format allows one to complete serialize the entire mesh along with
+all property traits stored in a mesh.
+
 
 # Dependencies
 C++11 

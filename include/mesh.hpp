@@ -181,18 +181,6 @@ namespace HalfMesh {
             }
         }
 
-    public:
-        std::vector<std::vector<unsigned int> > get_edge_loops(std::string property_name) {
-            std::vector<Edge *> property_search_space;
-            for (unsigned int i = 0; i < all_edges.size(); ++i) {
-                if (edge_data_store[property_name][i]) {
-                    property_search_space.push_back(all_edges.at(i));
-                }
-            }
-            for (unsigned int i = 0; i < property_search_space.size(); ++i) {
-
-            }
-        }
 
     public:
         void complete_mesh() {
@@ -362,7 +350,7 @@ namespace HalfMesh {
                 } else {
                     return PROPERTY_STATUS::PROPERTY_COULD_NOT_BE_DELETED;
                 }
-            }  else if (mesh_entity == MESH_ENTITY_TYPE::M_FACE) {
+            } else if (mesh_entity == MESH_ENTITY_TYPE::M_FACE) {
                 if (face_data_store.contains(property_name)) {
                     face_data_store.erase(property_name);
                 }
