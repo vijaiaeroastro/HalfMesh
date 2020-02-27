@@ -20,6 +20,7 @@ int main() {
     return 0;
 }
 
+// Create a simplical mesh
 HalfMesh::Mesh *create_mesh() {
     HalfMesh::Mesh *new_mesh = new HalfMesh::Mesh;
     HalfMesh::Vertex *v1 = new HalfMesh::Vertex(0.0, 0.0, 0.0);
@@ -41,8 +42,8 @@ HalfMesh::Mesh *create_mesh() {
     return new_mesh;
 }
 
+// Loop through half edges in a face
 void loop_through_half_edges_inside_a_face(HalfMesh::Mesh *new_mesh) {
-    // Loop through half edges in a face
     for (unsigned int i = 0; i < new_mesh->get_faces().size(); ++i) {
         HalfMesh::Face *new_face = new_mesh->get_faces().at(i);
         std::cout << "One half edge for face F: " << new_face->handle() << " HE : "
@@ -56,8 +57,8 @@ void loop_through_half_edges_inside_a_face(HalfMesh::Mesh *new_mesh) {
     }
 }
 
+// Loop through vertices
 void loop_through_vertices_in_a_mesh(HalfMesh::Mesh *new_mesh) {
-    // Loop through vertices
     for (unsigned int i = 0; i < new_mesh->get_vertices().size(); ++i) {
         HalfMesh::Vertex *new_vertex = new_mesh->get_vertices().at(i);
         std::cout << "Vertex " << i + 1 << " has " << new_vertex->get_incoming_half_edges().size()
@@ -68,8 +69,8 @@ void loop_through_vertices_in_a_mesh(HalfMesh::Mesh *new_mesh) {
     }
 }
 
+// Loop through edges and find boundaries
 void detect_boundary_edges(HalfMesh::Mesh *new_mesh) {
-    // Loop through edges and find boundaries
     unsigned int count = 0;
     for (unsigned int i = 0; i < new_mesh->get_edges().size(); ++i) {
         HalfMesh::Edge *new_edge = new_mesh->get_edges().at(i);
@@ -80,8 +81,8 @@ void detect_boundary_edges(HalfMesh::Mesh *new_mesh) {
     std::cout << "There is a total of " << count << " boundary edges in this mesh" << std::endl;
 }
 
+// Loop through half edges and find boundaries
 void detect_boundary_half_edges(HalfMesh::Mesh *new_mesh) {
-    // Loop through half edges and find boundaries
     unsigned int count = 0;
     for (unsigned int i = 0; i < new_mesh->get_half_edges().size(); ++i) {
         HalfMesh::HalfEdge *halfEdge = new_mesh->get_half_edges().at(i);
