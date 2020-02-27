@@ -236,7 +236,6 @@ namespace HalfMesh {
             vertex_to_half_edge_map.clear();
             vertex_data_store.clear();
             edge_data_store.clear();
-            half_edge_data_store.clear();
             face_data_store.clear();
         }
 
@@ -334,17 +333,6 @@ namespace HalfMesh {
         }
 
         template<typename T>
-        PROPERTY_STATUS add_half_edge_property(std::string property_name, T initialization_value) {
-            if (half_edge_data_store.contains(property_name)) {
-                return PROPERTY_STATUS::PROPERTY_EXISTS;
-            } else {
-                for (unsigned int i = 0; i < all_half_edges.size(); ++i) {
-                    half_edge_data_store[property_name][all_half_edges.at(i)->handle()] = initialization_value;
-                }
-            }
-        }
-
-        template<typename T>
         PROPERTY_STATUS add_face_property(std::string property_name, T initialization_value) {
             if (face_data_store.contains(property_name)) {
                 return PROPERTY_STATUS::PROPERTY_EXISTS;
@@ -374,16 +362,7 @@ namespace HalfMesh {
                 } else {
                     return PROPERTY_STATUS::PROPERTY_COULD_NOT_BE_DELETED;
                 }
-            } else if (mesh_entity == MESH_ENTITY_TYPE::M_HALF_EDGE) {
-                if (half_edge_data_store.contains(property_name)) {
-                    half_edge_data_store.erase(property_name);
-                }
-                if (!half_edge_data_store.contains(property_name)) {
-                    return PROPERTY_STATUS::PROPERTY_DELETED;
-                } else {
-                    return PROPERTY_STATUS::PROPERTY_COULD_NOT_BE_DELETED;
-                }
-            } else if (mesh_entity == MESH_ENTITY_TYPE::M_FACE) {
+            }  else if (mesh_entity == MESH_ENTITY_TYPE::M_FACE) {
                 if (face_data_store.contains(property_name)) {
                     face_data_store.erase(property_name);
                 }
@@ -408,10 +387,6 @@ namespace HalfMesh {
             edge_data_store[property_name][handle] = value;
         }
 
-        template<typename T>
-        void set_half_edge_property(std::string property_name, unsigned int handle, T value) {
-            half_edge_data_store[property_name][handle] = value;
-        }
 
         template<typename T>
         void set_face_property(std::string property_name, unsigned int handle, T value) {
@@ -428,13 +403,6 @@ namespace HalfMesh {
         T get_edge_property(std::string property_name, unsigned int handle) {
             return edge_data_store[property_name][handle];
         }
-
-
-        template<typename T>
-        T get_half_edge_property(std::string property_name, unsigned int handle) {
-            return half_edge_data_store[property_name][handle];
-        }
-
 
         template<typename T>
         T get_face_property(std::string property_name, unsigned int handle) {
@@ -544,7 +512,6 @@ namespace HalfMesh {
             }
             vertex_data_store = binary_json["VERTEX_PROPERTIES"];
             edge_data_store = binary_json["EDGE_PROPERTIES"];
-            half_edge_data_store = binary_json["HALF_EDGE_PROPERTIES"];
             face_data_store = binary_json["FACE_PROPERTIES"];
             complete_mesh();
             stream.close();
@@ -616,6 +583,29 @@ namespace HalfMesh {
 #ifndef NDEBUG
             std::cout << "---> GMSH WRITER " << mesh_name << std::endl;
 #endif
+            std::remove(mesh_name.c_str());
+            std::ofstream gmsh_file(mesh_name);
+            gmsh_file << "$MeshFormat" << std::endl;
+            gmsh_file << "2.2 0 " << sizeof(double) << std::endl;
+            gmsh_file << "$EndMeshFormat" << std::endl;
+            gmsh_file << "$Nodes" << std::endl;
+            gmsh_file << all_vertices.size() << std::endl;
+            for (unsigned int i = 0; i < all_vertices.size(); ++i) {
+                Vertex *current_vertex = all_vertices.at(i);
+                gmsh_file << i + 1 << " " << current_vertex->get_x() << " " << current_vertex->get_y() << " "
+                          << current_vertex->get_z() << std::endl;
+            }
+            gmsh_file << "$EndNodes" << std::endl;
+            gmsh_file << "$Elements" << std::endl;
+            gmsh_file << all_faces.size() << std::endl;
+            for (unsigned int i = 0; i < all_faces.size(); ++i) {
+                Face *current_face = all_faces.at(i);
+                gmsh_file << i + 1 << " " << 2 << " 2 0 1 " << current_face->get_vertex_one()->handle() + 1 << " "
+                          << current_face->get_vertex_two()->handle() + 1 << " "
+                          << current_face->get_vertex_three()->handle() + 1 << std::endl;
+            }
+            gmsh_file << "$EndElements" << std::endl;
+            gmsh_file.close();
         }
 
         void write_binary_mesh(const std::string mesh_name) {
@@ -636,7 +626,6 @@ namespace HalfMesh {
             }
             combined_json_file["VERTEX_PROPERTIES"] = vertex_data_store;
             combined_json_file["EDGE_PROPERTIES"] = edge_data_store;
-            combined_json_file["HALF_EDGE_PROPERTIES"] = half_edge_data_store;
             combined_json_file["FACE_PROPERTIES"] = face_data_store;
             std::remove(mesh_name.c_str());
             std::vector<std::uint8_t> v_bson = nlohmann::json::to_bson(combined_json_file);
@@ -692,7 +681,6 @@ namespace HalfMesh {
     private:
         nlohmann::json vertex_data_store;
         nlohmann::json edge_data_store;
-        nlohmann::json half_edge_data_store;
         nlohmann::json face_data_store;
 
     };

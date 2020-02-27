@@ -12,11 +12,13 @@ void detect_boundary_half_edges(HalfMesh::Mesh *mesh);
 
 int main() {
     HalfMesh::Mesh *new_mesh = new HalfMesh::Mesh();
-    new_mesh->read("/home/vijai.kumar/Documents/Test_Cases/Rectangle_hole/rectangle_hole.obj");
+    new_mesh->read("/home/vijai.kumar/Codes/HalfMesh/data/l_domain.msh");
     std::cout << "Edges : " << new_mesh->get_edges().size() << std::endl;
     std::cout << "Half Edges : " << new_mesh->get_half_edges().size() << std::endl;
-    loop_through_vertices_in_a_mesh(new_mesh);
-    detect_boundary_edges(new_mesh);
+    new_mesh->save("test_1.msh");
+    new_mesh->save("test_1.bm");
+//    loop_through_vertices_in_a_mesh(new_mesh);
+//    detect_boundary_edges(new_mesh);
     return 0;
 }
 

@@ -90,7 +90,6 @@ namespace HalfMesh {
 
     MESH_TYPE guess_mesh_format(const std::string input_string_name) {
         strutil::to_lower(input_string_name);
-        std::cout << input_string_name << std::endl;
         if (strutil::ends_with(input_string_name, ".msh")) {
             return MESH_TYPE::GMSH;
         } else if (strutil::ends_with(input_string_name, ".obj")) {
