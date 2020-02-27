@@ -183,19 +183,15 @@ namespace HalfMesh {
         }
 
     public:
-        std::vector< std::vector< unsigned int > > get_edge_loops(std::string property_name)
-        {
-            std::vector< Edge* > property_search_space;
-            for(unsigned int i = 0; i < all_edges.size(); ++i)
-            {
-                if(edge_data_store[property_name][i])
-                {
+        std::vector<std::vector<unsigned int> > get_edge_loops(std::string property_name) {
+            std::vector<Edge *> property_search_space;
+            for (unsigned int i = 0; i < all_edges.size(); ++i) {
+                if (edge_data_store[property_name][i]) {
                     property_search_space.push_back(all_edges.at(i));
                 }
             }
-            for(unsigned int i = 0; i < property_search_space.size(); ++i)
-            {
-                
+            for (unsigned int i = 0; i < property_search_space.size(); ++i) {
+
             }
         }
 
@@ -244,7 +240,6 @@ namespace HalfMesh {
             half_edge_data_store.clear();
             face_data_store.clear();
         }
-
 
 
     public:
@@ -523,6 +518,7 @@ namespace HalfMesh {
                 }
             }
             complete_mesh();
+            gmsh_file.close();
         }
 
         void read_binary_mesh(const std::string mesh_name) {
@@ -552,6 +548,7 @@ namespace HalfMesh {
             half_edge_data_store = binary_json["HALF_EDGE_PROPERTIES"];
             face_data_store = binary_json["FACE_PROPERTIES"];
             complete_mesh();
+            stream.close();
         }
 
         void read_obj(const std::string mesh_name) {
@@ -559,6 +556,60 @@ namespace HalfMesh {
             std::cout << "---> OBJ READER " << mesh_name << std::endl;
 #endif
             clear();
+            std::ifstream obj_file(mesh_name);
+            std::string current_line;
+            unsigned int unknown_vertices = 0;
+            unsigned int unknown_faces = 0;
+            while (std::getline(obj_file, current_line)) {
+                if (strutil::starts_with(current_line, "v ")) {
+                    std::vector<std::string> vertex_string = split_string(current_line, " ", true);
+                    if (vertex_string.size() == 4) {
+                        double x, y, z;
+                        x = std::stod(vertex_string.at(1));
+                        y = std::stod(vertex_string.at(2));
+                        z = std::stod(vertex_string.at(3));
+                        Vertex *vertex = new Vertex(x, y, z);
+                        add_vertex(vertex);
+                    } else {
+                        ++unknown_vertices;
+                    }
+                }
+                if (strutil::starts_with(current_line, "f ")) {
+                    std::vector<std::string> face_string = split_string(current_line, " ", true);
+                    if (face_string.size() == 4) {
+                        unsigned int e1, e2, e3;
+                        if (strutil::contains(face_string.at(1), "//")) {
+                            std::vector<std::string> sub_split_e1 = split_string(face_string.at(1), "//", true);
+                            e1 = static_cast< unsigned int >(std::stoi(sub_split_e1.at(0)));
+                        } else {
+                            e1 = static_cast< unsigned int >(std::stoi(face_string.at(1)));
+                        }
+                        if (strutil::contains(face_string.at(2), "//")) {
+                            std::vector<std::string> sub_split_e2 = split_string(face_string.at(2), "//", true);
+                            e2 = static_cast< unsigned int >(std::stoi(sub_split_e2.at(0)));
+                        } else {
+                            e2 = static_cast< unsigned int >(std::stoi(face_string.at(2)));
+                        }
+                        if (strutil::contains(face_string.at(3), "//")) {
+                            std::vector<std::string> sub_split_e3 = split_string(face_string.at(3), "//", true);
+                            e3 = static_cast< unsigned int >(std::stoi(sub_split_e3.at(0)));
+                        } else {
+                            e3 = static_cast< unsigned int >(std::stoi(face_string.at(3)));
+                        }
+                        add_face(get_vertex(e1 - 1), get_vertex(e2 - 1), get_vertex(e3 - 1));
+                    } else {
+                        ++unknown_faces;
+                    }
+                }
+            }
+            if ((unknown_vertices == 0) && (unknown_faces == 0)) {
+                complete_mesh();
+            } else {
+                std::cout << "The input geometry has " << unknown_vertices << " invalid vertices (higher than 3d) and "
+                          << unknown_faces << " invalid faces (arbitrary polygons)" << std::endl;
+            }
+            obj_file.close();
+
         }
 
     private:
@@ -599,6 +650,23 @@ namespace HalfMesh {
 #ifndef NDEBUG
             std::cout << "---> OBJ MESH WRITER " << mesh_name << std::endl;
 #endif
+            std::remove(mesh_name.c_str());
+            std::ofstream obj_file(mesh_name);
+            obj_file << "# Half Mesh OBJ Writer\n";
+            for (unsigned int i = 0; i < all_vertices.size(); ++i) {
+                Vertex *current_vertex = all_vertices.at(i);
+                obj_file << "v " << current_vertex->get_x() << " " << current_vertex->get_y() << " "
+                         << current_vertex->get_z() << std::endl;
+            }
+            obj_file << "# " << all_vertices.size() << " vertices" << std::endl;
+            for (unsigned int i = 0; i < all_faces.size(); ++i) {
+                Face *current_face = all_faces.at(i);
+                obj_file << "f " << current_face->get_vertex_one()->handle() << " "
+                         << current_face->get_vertex_two()->handle() << " "
+                         << current_face->get_vertex_three()->handle() << std::endl;
+            }
+            obj_file << "# " << all_faces.size() << " faces" << std::endl;
+            obj_file.close();
         }
 
 
