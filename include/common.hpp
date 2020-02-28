@@ -8,6 +8,7 @@
 #include <vector>
 #include <limits>
 #include <cstddef>
+#include <cmath>
 #include <strutil.hpp>
 
 namespace HalfMesh {
@@ -34,7 +35,8 @@ namespace HalfMesh {
         GMSH = 100,
         OBJ = 200,
         BINARY_MESH = 300,
-        UNKNOWN = 400
+        VTK = 500,
+        UNKNOWN = 500
     };
 
     // Enum for mesh identities

@@ -96,8 +96,16 @@ namespace HalfMesh {
             return MESH_TYPE::OBJ;
         } else if (strutil::ends_with(input_string_name, ".bm")) {
             return MESH_TYPE::BINARY_MESH;
+        } else if (strutil::ends_with(input_string_name, ".vtk")) {
+            return MESH_TYPE::VTK;
         } else {
             return MESH_TYPE::UNKNOWN;
         }
+    }
+
+    template < typename T >
+    T SquaredValue(T input)
+    {
+        return input * input;
     }
 }

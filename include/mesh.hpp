@@ -397,6 +397,24 @@ namespace HalfMesh {
             return face_data_store[property_name][handle];
         }
 
+    private:
+        double get_area(unsigned int i)
+        {
+            Face *current_face = get_face(i);
+            Vertex *v1 = current_face->get_vertex_one();
+            Vertex *v2 = current_face->get_vertex_two();
+            Vertex *v3 = current_face->get_vertex_three();
+            double x1, y1, z1, x2, y2, z2, x3, y3, z3;
+            x1 = v1->get_x(); y1 = v1->get_y(); z1 = v1->get_z();
+            x2 = v2->get_z(); y2 = v2->get_y(); z2 = v2->get_z();
+            x3 = v3->get_x(); y3 = v3->get_y(); z3 = v3->get_z();
+            double a1 = SquaredValue< double >( (x2 * y1) - (x3 * y1) - (x1 * y2) + (x3 * y2) + (x1 * y3) - (x2 * y3) );
+            double a2 = SquaredValue< double >( (x2 * z1) - (x3 * z1) - (x1 * z2) + (x3 * z2) + (x1 * z3) - (x2 * z3) );
+            double a3 = SquaredValue< double >( (y2 * z1) - (y3 * z1) - (y1 * z2) + (y3 * z2) + (y1 * z3) - (y2 * z3) );
+            double area = 0.5 * std::sqrt(a1 + a2 + a3);
+            return area;
+        }
+
     public:
         void save(const std::string mesh_name) {
             MESH_TYPE current_mesh_type = guess_mesh_format(mesh_name);
@@ -406,6 +424,8 @@ namespace HalfMesh {
                 write_gmsh(mesh_name);
             } else if (current_mesh_type == MESH_TYPE::OBJ) {
                 write_obj(mesh_name);
+            } else if (current_mesh_type == MESH_TYPE::VTK) {
+                write_vtk(mesh_name);
             } else {
                 std::cout << "Unknown data type. Use GMSH / OBJ / BM mesh formats" << std::endl;
             }
@@ -643,6 +663,38 @@ namespace HalfMesh {
             }
             obj_file << "# " << all_faces.size() << " faces" << std::endl;
             obj_file.close();
+        }
+
+        void write_vtk(const std::string mesh_name) {
+#ifndef NDEBUG
+            std::cout << "---> VTK MESH WRITER " << mesh_name << std::endl;
+#endif
+            std::remove(mesh_name.c_str());
+            std::ofstream vtk_file(mesh_name);
+            vtk_file << "# vtk DataFile Version 2.0" << std::endl;
+            vtk_file << "Half Mesh VTK " << std::endl;
+            vtk_file << "ASCII" << std::endl;
+            vtk_file << "DATASET POLYDATA" << std::endl;
+            vtk_file << "POINTS " << all_vertices.size() << " float" << std::endl;
+            for (unsigned int i = 0; i < all_vertices.size(); ++i) {
+                Vertex *current_vertex = all_vertices.at(i);
+                vtk_file << current_vertex->get_x() << " " << current_vertex->get_y() << " " << current_vertex->get_z()
+                         << std::endl;
+            }
+            vtk_file << "POLYGONS " << all_faces.size() << " " << 4 * all_faces.size() << std::endl;
+            for (unsigned int i = 0; i < all_faces.size(); ++i) {
+                Face *current_face = all_faces.at(i);
+                vtk_file << "3 " << current_face->get_vertex_one()->handle() << " "
+                         << current_face->get_vertex_two()->handle() << " "
+                         << current_face->get_vertex_three()->handle() << std::endl;
+            }
+            vtk_file << "CELL_DATA " << all_faces.size() << std::endl;
+            vtk_file << "SCALARS cell_scalars float 1" << std::endl;
+            vtk_file << "LOOKUP_TABLE default" << std::endl;
+            for (unsigned int i = 0; i < all_faces.size(); ++i) {
+                vtk_file << get_area(all_faces.at(i)->handle()) << std::endl;
+            }
+            vtk_file.close();
         }
 
 
