@@ -3,7 +3,7 @@ A Simple and flexible half edge data structure
 
 This is a very simple Half Edge data structure implementation. It is currently only tailored for
 triangular meshes. However, its quite straightforward to modify them for general polygonal surfaces.
-Its quite easy to implement most of the surface algorithms such as
+Its relatively easy to implement most of the surface algorithms such as
 * Mesh subdivision
 * Smoothing
 * Hole detection
@@ -17,6 +17,11 @@ vertex / edge / face in a mesh. There is a custom mesh format which uses bson an
 extension **.bm**. This format allows one to complete serialize the entire mesh along with
 all property traits stored in a mesh.
 
+# Input / Output Capabilities
+* OBJ (Triangles only) - Read & Write
+* GMSH (Version 2, Triangles only) - Read & Write
+* VTK (Triangles only) - Write
+* BM (Binary Mesh format) - Custom format that is used to read and write properties along with mesh
 
 # Dependencies
 C++11 
