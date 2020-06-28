@@ -1,4 +1,5 @@
 #include <mesh.hpp>
+#include <list>
 
 // Forward declaration of some functions
 
@@ -12,14 +13,15 @@ void detect_boundary_half_edges(HalfMesh::Mesh *mesh);
 
 int main() {
     HalfMesh::Mesh *new_mesh = new HalfMesh::Mesh();
-    new_mesh->read("/home/vijai.kumar/Documents/Test_Cases/L_shape/L_object.obj");
-    std::cout << "Edges : " << new_mesh->get_edges().size() << std::endl;
-    std::cout << "Half Edges : " << new_mesh->get_half_edges().size() << std::endl;
-    new_mesh->save("test_1.msh");
-    new_mesh->save("test_1.bm");
-    new_mesh->save("test_1.vtk");
-    loop_through_vertices_in_a_mesh(new_mesh);
-    detect_boundary_edges(new_mesh);
+    new_mesh->read("/home/vijai/Documents/Cylinder.obj");
+    new_mesh->compute_number_of_holes();
+//    std::cout << "Edges : " << new_mesh->get_edges().size() << std::endl;
+//    std::cout << "Half Edges : " << new_mesh->get_half_edges().size() << std::endl;
+//    new_mesh->save("test_1.msh");
+//    new_mesh->save("test_1.bm");
+//    new_mesh->save("test_1.vtk");
+//    loop_through_vertices_in_a_mesh(new_mesh);
+//    detect_boundary_edges(new_mesh);
     return 0;
 }
 
