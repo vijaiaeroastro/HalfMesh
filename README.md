@@ -3,14 +3,14 @@ A Simple and flexible half edge data structure
 
 This is a very simple Half Edge data structure implementation. It is currently only tailored for
 triangular meshes. However, its quite straightforward to modify them for general polygonal surfaces.
-Its relatively easy to implement most of the surface algorithms such as
+
+We demonstrate the following algorithms 
 * Mesh subdivision
-* Smoothing
 * Hole detection
 * Discrete curvature computation
 * Feature edge detection
+Its easy to implement any additional algorithms keeping these examples as a template.
 
-and so on..
 
 It has a simple property store based on JSON. It allows one to assign property to
 vertex / edge / face in a mesh. There is a custom mesh format which uses bson and it has an
