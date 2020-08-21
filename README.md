@@ -32,4 +32,4 @@ MIT
 # Notes
 I will try to keep it free from clutter as much as possible and only depend on STL. 
 But this may change in future. If you would like to see any specific geometry manipulation or
-repair algorithm implemented, i would be more than happy to add it here in future. Just contact me.
+repair algorithm implemented, i would be more than happy to add it here in future. Just contact over email.
