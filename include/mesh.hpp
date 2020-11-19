@@ -399,66 +399,58 @@ namespace HalfMesh {
 
     public:
         void compute_number_of_holes_new() {
-            std::vector< Edge* > all_boundary_edges;
-            for(unsigned int i = 0; i < all_edges.size(); ++i)
-            {
-                if(all_edges.at(i)->is_boundary())
-                {
+            std::vector<Edge *> all_boundary_edges;
+            for (unsigned int i = 0; i < all_edges.size(); ++i) {
+                if (all_edges.at(i)->is_boundary()) {
                     all_boundary_edges.push_back(all_edges.at(i));
                 }
             }
-            std::unordered_map< unsigned int, std::vector< Edge* > > loop_id_to_loop_edges_map;
-            std::unordered_map< Edge*, bool > already_used_edge_tracker;
-            Edge* starting_edge = all_boundary_edges.at(0);
+            std::unordered_map<unsigned int, std::vector<Edge *> > loop_id_to_loop_edges_map;
+            std::unordered_map<Edge *, bool> already_used_edge_tracker;
+            Edge *starting_edge = all_boundary_edges.at(0);
             unsigned int loop_index = 0;
-            loop_id_to_loop_edges_map[loop_index] =
-            for(unsigned int i = 1; i < all_boundary_edges.size(); ++i)
-            {
-                Edge* current_edge;
-                if(i == 1)
-                {
+//            loop_id_to_loop_edges_map[loop_index] =
+            for (unsigned int i = 1; i < all_boundary_edges.size(); ++i) {
+                Edge *current_edge;
+                if (i == 1) {
                     current_edge = starting_edge;
-                    std::vector< Edge* > current_loop_edges;
+                    std::vector<Edge *> current_loop_edges;
                     current_loop_edges.push_back(starting_edge);
                     loop_id_to_loop_edges_map[loop_index] = current_loop_edges;
-                }
-                else
-                {
+                } else {
                     current_edge = all_boundary_edges.at(i);
                 }
-                if(already_used_edge_tracker.find(current_edge) != already_used_edge_tracker.end())
-                {
+                if (already_used_edge_tracker.find(current_edge) != already_used_edge_tracker.end()) {
                     continue;
                 }
-                Face* parent_face = get_face(current_edge->get_one_half_edge()->get_parent_face());
-                HalfEdge* one_half_edge = current_edge->get_one_half_edge();
-                HalfEdge* next_half_edge = get_next_half_edge(one_half_edge, get_face(one_half_edge->get_parent_face()));
-                Edge* next_edge_in_loop;
-                if(next_half_edge->is_boundary())
-                {
+                Face *parent_face = get_face(current_edge->get_one_half_edge()->get_parent_face());
+                HalfEdge *one_half_edge = current_edge->get_one_half_edge();
+                HalfEdge *next_half_edge = get_next_half_edge(one_half_edge,
+                                                              get_face(one_half_edge->get_parent_face()));
+                Edge *next_edge_in_loop;
+                if (next_half_edge->is_boundary()) {
                     next_edge_in_loop = get_edge(next_half_edge->get_parent_edge());
 
-                }
-                else {
-                    HalfEdge* opposing_half_edge = get_half_edge(next_half_edge->get_opposing_half_edge());
-                    HalfEdge* next_probably_boundary = get_next_half_edge(opposing_half_edge, get_face(opposing_half_edge->get_parent_face()));
-                    if(next_probably_boundary->is_boundary()){
+                } else {
+                    HalfEdge *opposing_half_edge = get_half_edge(next_half_edge->get_opposing_half_edge());
+                    HalfEdge *next_probably_boundary = get_next_half_edge(opposing_half_edge, get_face(
+                            opposing_half_edge->get_parent_face()));
+                    if (next_probably_boundary->is_boundary()) {
                         next_edge_in_loop = get_edge(next_probably_boundary->get_parent_edge());
                     }
                 }
-                if(next_edge_in_loop == starting_edge)
-                {
+                if (next_edge_in_loop == starting_edge) {
                     ++loop_index;
                 }
                 already_used_edge_tracker[next_edge_in_loop] = true;
-                std::vector< Edge* > current_loop_edges = loop_id_to_loop_edges_map[loop_index];
+                std::vector<Edge *> current_loop_edges = loop_id_to_loop_edges_map[loop_index];
                 current_loop_edges.push_back(next_edge_in_loop);
                 loop_id_to_loop_edges_map[loop_index] = current_loop_edges;
             }
         }
 
         void compute_number_of_holes() {
-            std::vector< Edge * > all_boundary_edges;
+            std::vector<Edge *> all_boundary_edges;
             for (unsigned int i = 0; i < all_half_edges.size(); ++i) {
                 HalfMesh::HalfEdge *halfEdge = all_half_edges.at(i);
                 HalfMesh::Edge *parentEdge = get_edge(halfEdge->get_parent_edge());
@@ -466,13 +458,11 @@ namespace HalfMesh {
                     all_boundary_edges.push_back(parentEdge);
                 }
             }
-            std::unordered_map< Edge*, bool > already_used;
-            for(unsigned int i = 0; i < all_boundary_edges.size(); ++i)
-            {
-                std::vector< Edge* > current_edge_collection;
+            std::unordered_map<Edge *, bool> already_used;
+            for (unsigned int i = 0; i < all_boundary_edges.size(); ++i) {
+                std::vector<Edge *> current_edge_collection;
                 HalfMesh::Edge *current_edge = all_boundary_edges.at(i);
-                if(! (already_used.find(current_edge) == already_used.end()))
-                {
+                if (!(already_used.find(current_edge) == already_used.end())) {
                     continue;
                 }
                 already_used[current_edge] = true;
@@ -482,15 +472,13 @@ namespace HalfMesh {
                 unsigned int finisher = v1;
                 current_edge_collection.push_back(current_edge);
                 unsigned int k = 0;
-                while(beginner != finisher)
-                {
+                while (beginner != finisher) {
 //                    std::cout << "Beginner : " << beginner << " Finisher : " << finisher << std::endl;
                     HalfMesh::Edge *other_edge = all_boundary_edges.at(k);
-                    if(! (already_used.find(other_edge) == already_used.end()))
-                    {
+                    if (!(already_used.find(other_edge) == already_used.end())) {
                         continue;
                     }
-                    if(other_edge != current_edge) {
+                    if (other_edge != current_edge) {
                         unsigned int vv1 = other_edge->get_vertex_one()->handle();
                         unsigned int vv2 = other_edge->get_vertex_two()->handle();
                         bool is_done = false;
@@ -502,22 +490,18 @@ namespace HalfMesh {
                             is_done = true;
                             beginner = vv1;
                         }
-                        if (is_done)
-                        {
+                        if (is_done) {
                             std::cout << "Done" << std::endl;
                             already_used[other_edge] = true;
                             current_edge_collection.push_back(other_edge);
-                        }
-                        else
-                        {
+                        } else {
                             current_edge_collection.clear();
                             break;
                         }
                     }
                     k = k + 1;
                 }
-                for(unsigned int trouser = 0; trouser < current_edge_collection.size(); ++trouser)
-                {
+                for (unsigned int trouser = 0; trouser < current_edge_collection.size(); ++trouser) {
                     HalfMesh::Edge *cce = current_edge_collection.at(trouser);
                     std::cout << cce->get_vertex_one()->handle() << "->" << cce->get_vertex_two()->handle() << "->";
                 }
@@ -525,6 +509,38 @@ namespace HalfMesh {
                 current_edge_collection.clear();
             }
             std::cout << "Boundary edges : " << all_boundary_edges.size() << std::endl;
+        }
+
+        bool is_multiply_connected() {
+            Face *one_face = get_face(0);
+            std::unordered_map<unsigned int, bool> visitation_map;
+            bool is_there_next = false;
+            visitation_map[one_face->handle()] = true;
+            while (!is_there_next) {
+                std::cout << one_face->handle() << "(" << get_faces().size() << ")" << std::endl;
+                Face *neighbour = get_one_neighbour_face(one_face);
+                if (neighbour->is_valid()) {
+                    is_there_next = true;
+                    one_face = neighbour;
+                }
+                visitation_map[one_face->handle()] = true;
+            }
+            if (get_faces().size() > visitation_map.size()) {
+                return true;
+            } else {
+                if (get_faces().size() == visitation_map.size()) {
+                    return false;
+                } else {
+                    // Problematic
+                    return true;
+                }
+            }
+        }
+
+    private:
+        Face *get_one_neighbour_face(Face *_input_face) {
+            return get_face(
+                    get_half_edge(_input_face->get_one_half_edge()->get_opposing_half_edge())->get_parent_face());
         }
 
     private:
@@ -550,13 +566,11 @@ namespace HalfMesh {
             return area;
         }
 
-        Vertex get_face_normal(unsigned int i)
-        {
+        Vertex get_face_normal(unsigned int i) {
             Face *current_face = get_face(i);
         }
 
-        double get_face_angle(unsigned int f1, unsigned int f2)
-        {
+        double get_face_angle(unsigned int f1, unsigned int f2) {
             Face *face_1 = get_face(f1);
             Face *face_2 = get_face(f2);
         }

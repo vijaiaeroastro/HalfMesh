@@ -25,6 +25,14 @@ namespace HalfMesh {
             return face_handle;
         }
 
+        bool is_valid() {
+            if (handle() == std::numeric_limits<unsigned int>::max()) {
+                return false;
+            } else {
+                return true;
+            }
+        }
+
         void set_one_half_edge(HalfEdge *half_edge) {
             one_half_edge = half_edge;
         }

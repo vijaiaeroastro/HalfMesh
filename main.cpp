@@ -13,8 +13,11 @@ void detect_boundary_half_edges(HalfMesh::Mesh *mesh);
 
 int main() {
     HalfMesh::Mesh *new_mesh = new HalfMesh::Mesh();
-    new_mesh->read("/home/vijai/Documents/Cylinder.obj");
-    new_mesh->compute_number_of_holes();
+    std::cout << "----> Reading Mesh (BEGIN)" << std::endl;
+    new_mesh->read("bunny_merged.msh");
+    std::cout << "----> Reading Mesh (END)" << std::endl;
+    std::cout << "Multiply Connected : " << new_mesh->is_multiply_connected() << std::endl;
+//    new_mesh->compute_number_of_holes();
 //    std::cout << "Edges : " << new_mesh->get_edges().size() << std::endl;
 //    std::cout << "Half Edges : " << new_mesh->get_half_edges().size() << std::endl;
 //    new_mesh->save("test_1.msh");
