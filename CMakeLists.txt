@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(halfMesh VERSION 1.3.0 LANGUAGES CXX)
+project(halfMesh VERSION 1.4.0 LANGUAGES CXX)
 
 include(GNUInstallDirs)
 
@@ -9,6 +9,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(BUILD_TESTS "Build unit tests" ON)
 option(BUILD_EXAMPLES "Build usage examples" ON)
+option(BUILD_BENCHMARKS "Build performance benchmarks" OFF)
 option(BUILD_SHARED_LIBS "Build shared library" OFF)
 
 set(HALFMESH_SOURCES
@@ -77,6 +78,11 @@ if(BUILD_TESTS)
     add_executable(halfMesh_test_mutation tests/test_mutation_regressions.cpp)
     target_link_libraries(halfMesh_test_mutation PRIVATE halfMesh::halfMesh)
     add_test(NAME halfMesh_test_mutation COMMAND halfMesh_test_mutation)
+endif()
+
+if(BUILD_BENCHMARKS)
+    add_executable(halfMesh_bench_local_edits bench/local_edits.cpp)
+    target_link_libraries(halfMesh_bench_local_edits PRIVATE halfMesh::halfMesh)
 endif()
 
 install(TARGETS halfMesh

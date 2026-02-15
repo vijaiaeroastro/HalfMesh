@@ -678,6 +678,58 @@ namespace halfMesh {
         }
         const auto source_h = (target_h == v0->get_handle()) ? v1->get_handle() : v0->get_handle();
 
+        // Link condition: common one-ring neighbors of both endpoints must be exactly
+        // the opposite vertices of faces incident to this edge.
+        std::unordered_set<unsigned> opposite_handles;
+        if (const auto he0 = e->get_one_half_edge()) {
+            if (const auto f = he0->get_parent_face()) {
+                const auto verts = get_oriented_face_vertices(f);
+                for (const auto &v: verts) {
+                    if (!v) continue;
+                    const auto h = v->get_handle();
+                    if (h != v0->get_handle() && h != v1->get_handle()) {
+                        opposite_handles.insert(h);
+                    }
+                }
+            }
+            if (const auto opp = he0->get_opposing_half_edge()) {
+                if (const auto f = opp->get_parent_face()) {
+                    const auto verts = get_oriented_face_vertices(f);
+                    for (const auto &v: verts) {
+                        if (!v) continue;
+                        const auto h = v->get_handle();
+                        if (h != v0->get_handle() && h != v1->get_handle()) {
+                            opposite_handles.insert(h);
+                        }
+                    }
+                }
+            }
+        }
+        if (opposite_handles.empty() || opposite_handles.size() > 2) {
+            return false;
+        }
+
+        std::unordered_set<unsigned> n0;
+        for (const auto &vn: one_ring_vertex_of_a_vertex(v0)) {
+            if (vn) n0.insert(vn->get_handle());
+        }
+        std::unordered_set<unsigned> n1;
+        for (const auto &vn: one_ring_vertex_of_a_vertex(v1)) {
+            if (vn) n1.insert(vn->get_handle());
+        }
+        n0.erase(v1->get_handle());
+        n1.erase(v0->get_handle());
+
+        std::unordered_set<unsigned> common_neighbors;
+        for (const auto h: n0) {
+            if (n1.count(h)) {
+                common_neighbors.insert(h);
+            }
+        }
+        if (common_neighbors != opposite_handles) {
+            return false;
+        }
+
         std::unordered_set<FaceKey, FaceKeyHash, FaceKeyEqual> future_faces;
 
         for (const auto &f: faces_) {

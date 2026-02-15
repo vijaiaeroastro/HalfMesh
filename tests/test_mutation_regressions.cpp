@@ -223,6 +223,59 @@ void test_collapse_rejects_duplicate_face_result() {
     assert(!mesh.collapse_edge(edge_ab, a).ok);
 }
 
+void test_collapse_accepts_valid_boundary_link_condition() {
+    halfMesh::triMesh mesh;
+    const auto u = mesh.add_vertex(0.0, 0.0, 0.0);
+    const auto v = mesh.add_vertex(1.0, 0.0, 0.0);
+    const auto c = mesh.add_vertex(0.0, 1.0, 0.0);
+    assert(mesh.add_face(u, v, c) != nullptr);
+    mesh.complete_mesh();
+
+    const auto edge_uv = find_edge_between(mesh, u, v);
+    assert(edge_uv != nullptr);
+    assert(mesh.can_collapse(edge_uv, u));
+}
+
+void test_collapse_rejects_interior_link_condition_violation() {
+    halfMesh::triMesh mesh;
+    const auto u = mesh.add_vertex(0.0, 0.0, 0.0);
+    const auto v = mesh.add_vertex(1.0, 0.0, 0.0);
+    const auto c = mesh.add_vertex(0.0, 1.0, 0.0);
+    const auto d = mesh.add_vertex(1.0, 1.0, 0.0);
+    const auto w = mesh.add_vertex(0.5, 0.5, 1.0);
+    const auto a = mesh.add_vertex(-1.0, 0.0, 0.0);
+    const auto b = mesh.add_vertex(2.0, 0.0, 0.0);
+
+    assert(mesh.add_face(u, v, c) != nullptr);
+    assert(mesh.add_face(v, u, d) != nullptr);
+    assert(mesh.add_face(u, w, a) != nullptr); // creates edge u-w
+    assert(mesh.add_face(v, b, w) != nullptr); // creates edge v-w
+    mesh.complete_mesh();
+
+    const auto edge_uv = find_edge_between(mesh, u, v);
+    assert(edge_uv != nullptr);
+    assert(!mesh.can_collapse(edge_uv, u));
+}
+
+void test_collapse_rejects_boundary_link_condition_violation() {
+    halfMesh::triMesh mesh;
+    const auto u = mesh.add_vertex(0.0, 0.0, 0.0);
+    const auto v = mesh.add_vertex(1.0, 0.0, 0.0);
+    const auto c = mesh.add_vertex(0.0, 1.0, 0.0);
+    const auto w = mesh.add_vertex(0.5, 0.5, 1.0);
+    const auto a = mesh.add_vertex(-1.0, 0.0, 0.0);
+    const auto b = mesh.add_vertex(2.0, 0.0, 0.0);
+
+    assert(mesh.add_face(u, v, c) != nullptr); // boundary edge uv
+    assert(mesh.add_face(u, w, a) != nullptr); // creates edge u-w
+    assert(mesh.add_face(v, b, w) != nullptr); // creates edge v-w
+    mesh.complete_mesh();
+
+    const auto edge_uv = find_edge_between(mesh, u, v);
+    assert(edge_uv != nullptr);
+    assert(!mesh.can_collapse(edge_uv, u));
+}
+
 void test_flip_interior_edge() {
     halfMesh::triMesh mesh;
     const auto a = mesh.add_vertex(0.0, 0.0, 0.0);
@@ -498,6 +551,9 @@ int main() {
     test_collapse_interior_edge_to_endpoint();
     test_collapse_rejects_non_incident_target_vertex();
     test_collapse_rejects_duplicate_face_result();
+    test_collapse_accepts_valid_boundary_link_condition();
+    test_collapse_rejects_interior_link_condition_violation();
+    test_collapse_rejects_boundary_link_condition_violation();
     test_flip_interior_edge();
     test_flip_rejects_boundary_edge();
     test_flip_rejects_duplicate_face_result();

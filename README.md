@@ -38,6 +38,7 @@ Edge collapse API:
 - `can_collapse(edge, target_vertex)` checks collapse preconditions
 - `collapse_edge(edge, target_vertex)` collapses to one endpoint if valid and returns `EditResult`
 - local edit: only source-vertex incident topology is rewritten; unrelated handles stay stable
+- enforces link condition: shared endpoint neighbors must match opposite vertices of the collapsed edge's incident face(s)
 
 Edge flip API:
 - `can_flip(edge)` checks interior/validity constraints
@@ -76,6 +77,41 @@ cmake --build build
 ./build/halfMesh_edge_split_example
 ./build/halfMesh_edge_collapse_example
 ./build/halfMesh_edge_flip_example
+```
+
+### Build and run benchmark
+
+```bash
+cmake -S . -B build -DBUILD_BENCHMARKS=ON
+cmake --build build
+./build/halfMesh_bench_local_edits
+```
+
+Benchmark output reports attempted/succeeded operation counts, wall-clock time, and ops/sec for:
+- `split_edge`
+- `collapse_edge`
+- `flip_edge`
+
+Benchmark CLI options:
+- `--profile quick` (default)
+- `--profile stress`
+- `--nx <int> --ny <int>`
+- `--split-iters <int> --collapse-iters <int> --flip-iters <int>`
+- `--json` (machine-readable output)
+
+Examples:
+```bash
+# Quick profile (default)
+./build/halfMesh_bench_local_edits --profile quick
+
+# Stress profile
+./build/halfMesh_bench_local_edits --profile stress
+
+# Custom run
+./build/halfMesh_bench_local_edits --nx 48 --ny 48 --split-iters 800 --collapse-iters 400 --flip-iters 2500
+
+# JSON output
+./build/halfMesh_bench_local_edits --json
 ```
 
 ## Minimal usage
