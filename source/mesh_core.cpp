@@ -579,6 +579,28 @@ namespace halfMesh {
         }
         result.created_faces = set_difference(after_faces, before_faces);
 
+        // Local split keeps unaffected handles stable.
+        for (const auto h: before_vertices) {
+            if (after_vertices.count(h)) {
+                result.vertex_handle_remap[h] = h;
+            }
+        }
+        for (const auto h: before_edges) {
+            if (after_edges.count(h)) {
+                result.edge_handle_remap[h] = h;
+            }
+        }
+        for (const auto h: before_faces) {
+            if (after_faces.count(h)) {
+                result.face_handle_remap[h] = h;
+            }
+        }
+
+        // Rebuild property stores for surviving entities to drop removed-handle entries.
+        vertex_data_store = remap_property_store(old_vertex_properties, result.vertex_handle_remap);
+        edge_data_store = remap_property_store(old_edge_properties, result.edge_handle_remap);
+        face_data_store = remap_property_store(old_face_properties, result.face_handle_remap);
+
         // Vertex property propagation: interpolate source edge endpoint values to the split vertex.
         for (auto it = old_vertex_properties.begin(); it != old_vertex_properties.end(); ++it) {
             nlohmann::json av;
@@ -705,8 +727,11 @@ namespace halfMesh {
         const auto v1 = e->get_vertex_two();
         const auto target_h = target->get_handle();
         const auto source_h = (target_h == v0->get_handle()) ? v1->get_handle() : v0->get_handle();
-        const unsigned collapsed_edge_handle = e->get_handle();
+        const auto source_vertex = (target_h == v0->get_handle()) ? v1 : v0;
 
+        const auto before_vertices = collect_vertex_handles(vertices_);
+        const auto before_edges = collect_edge_handles(edges_);
+        const auto before_faces = collect_face_handles(faces_);
         const nlohmann::json old_vertex_properties = vertex_data_store;
         const nlohmann::json old_edge_properties = edge_data_store;
         const nlohmann::json old_face_properties = face_data_store;
@@ -727,77 +752,114 @@ namespace halfMesh {
             old_edges.push_back({old_edge->get_handle(), ov1->get_handle(), ov2->get_handle()});
         }
 
-        struct FaceRebuildPlan {
-            std::array<unsigned, 3> tri{};
+        struct FaceCollapsePlan {
+            facePtr old_face;
             unsigned old_face_handle = 0;
+            bool remove_only = false;
+            std::array<vertexPtr, 3> new_vertices{nullptr, nullptr, nullptr};
         };
-        std::vector<FaceRebuildPlan> rebuilt_faces;
-        rebuilt_faces.reserve(faces_.size());
+        std::vector<FaceCollapsePlan> plans;
+        plans.reserve(faces_.size());
 
         for (const auto &f: faces_) {
             const auto verts = get_oriented_face_vertices(f);
             const bool has_target = face_contains_handle(verts, target_h);
             const bool has_source = face_contains_handle(verts, source_h);
-            if (has_target && has_source) {
-                result.removed_faces.push_back(f->get_handle());
+
+            if (!has_source) {
                 continue;
             }
 
-            auto h = to_handle_triplet(verts);
-            for (auto &x: h) {
-                if (x == source_h) {
-                    x = target_h;
+            FaceCollapsePlan plan{};
+            plan.old_face = f;
+            plan.old_face_handle = f->get_handle();
+            plan.remove_only = has_target;
+            if (!plan.remove_only) {
+                plan.new_vertices = verts;
+                for (auto &v: plan.new_vertices) {
+                    if (v && v->get_handle() == source_h) {
+                        v = target;
+                    }
+                }
+                if (!plan.new_vertices[0] || !plan.new_vertices[1] || !plan.new_vertices[2]) {
+                    result.error = "Invalid face vertex data during collapse.";
+                    return result;
+                }
+                const auto h0 = plan.new_vertices[0]->get_handle();
+                const auto h1 = plan.new_vertices[1]->get_handle();
+                const auto h2 = plan.new_vertices[2]->get_handle();
+                if (h0 == h1 || h1 == h2 || h2 == h0) {
+                    result.error = "Collapse would create a degenerate face.";
+                    return result;
                 }
             }
-            if (h[0] == h[1] || h[1] == h[2] || h[2] == h[0]) {
-                result.error = "Collapse would create a degenerate face.";
+            plans.push_back(plan);
+        }
+
+        for (const auto &plan: plans) {
+            if (!delete_face(plan.old_face)) {
+                result.error = "Failed to delete incident face during collapse.";
                 return result;
             }
-            rebuilt_faces.push_back({h, f->get_handle()});
+            result.removed_faces.push_back(plan.old_face_handle);
+        }
+
+        if (!delete_vertex(source_vertex)) {
+            result.error = "Failed to delete collapsed source vertex.";
+            return result;
         }
         result.removed_vertices.push_back(source_h);
-        result.removed_edges.push_back(collapsed_edge_handle);
 
-        std::vector<vertexPtr> kept_vertices;
-        kept_vertices.reserve(vertices_.size());
-        for (const auto &v: vertices_) {
-            if (!v || v->get_handle() == source_h) {
+        for (const auto &plan: plans) {
+            if (plan.remove_only) {
                 continue;
             }
-            kept_vertices.push_back(v);
-        }
-
-        std::sort(kept_vertices.begin(), kept_vertices.end(),
-                  [](const vertexPtr &a, const vertexPtr &b) {
-                      return a->get_handle() < b->get_handle();
-                  });
-
-        std::unordered_map<unsigned, vertexPtr> remap;
-        remap.reserve(kept_vertices.size());
-
-        clear_data();
-
-        for (const auto &v: kept_vertices) {
-            const auto new_vertex = add_vertex(v->get_x(), v->get_y(), v->get_z());
-            remap[v->get_handle()] = new_vertex;
-            result.vertex_handle_remap[v->get_handle()] = new_vertex->get_handle();
-        }
-
-        for (const auto &plan: rebuilt_faces) {
-            const auto &tri = plan.tri;
-            const auto it0 = remap.find(tri[0]);
-            const auto it1 = remap.find(tri[1]);
-            const auto it2 = remap.find(tri[2]);
-            if (it0 == remap.end() || it1 == remap.end() || it2 == remap.end()) {
-                result.error = "Vertex remap failed during collapse rebuild.";
-                return result;
-            }
-            const auto new_face = add_face(it0->second, it1->second, it2->second);
+            const auto new_face = add_face(plan.new_vertices[0], plan.new_vertices[1], plan.new_vertices[2]);
             if (!new_face) {
-                result.error = "Failed to rebuild face during collapse.";
+                result.error = "Failed to create rewired face during collapse.";
                 return result;
             }
             result.face_handle_remap[plan.old_face_handle] = new_face->get_handle();
+        }
+
+        const auto after_vertices = collect_vertex_handles(vertices_);
+        const auto after_edges = collect_edge_handles(edges_);
+        const auto after_faces = collect_face_handles(faces_);
+        result.created_vertices = set_difference(after_vertices, before_vertices);
+        result.created_edges = set_difference(after_edges, before_edges);
+        result.created_faces = set_difference(after_faces, before_faces);
+        const auto removed_vertices = set_difference(before_vertices, after_vertices);
+        result.removed_vertices.insert(result.removed_vertices.end(), removed_vertices.begin(), removed_vertices.end());
+        const auto removed_edges = set_difference(before_edges, after_edges);
+        result.removed_edges.insert(result.removed_edges.end(), removed_edges.begin(), removed_edges.end());
+        const auto removed_faces = set_difference(before_faces, after_faces);
+        result.removed_faces.insert(result.removed_faces.end(), removed_faces.begin(), removed_faces.end());
+
+        auto sort_unique = [](std::vector<unsigned> &v) {
+            std::sort(v.begin(), v.end());
+            v.erase(std::unique(v.begin(), v.end()), v.end());
+        };
+        sort_unique(result.created_vertices);
+        sort_unique(result.created_edges);
+        sort_unique(result.created_faces);
+        sort_unique(result.removed_vertices);
+        sort_unique(result.removed_edges);
+        sort_unique(result.removed_faces);
+
+        for (const auto h: before_vertices) {
+            if (after_vertices.count(h)) {
+                result.vertex_handle_remap[h] = h;
+            }
+        }
+        for (const auto h: before_edges) {
+            if (after_edges.count(h)) {
+                result.edge_handle_remap[h] = h;
+            }
+        }
+        for (const auto h: before_faces) {
+            if (after_faces.count(h) && !result.face_handle_remap.count(h)) {
+                result.face_handle_remap[h] = h;
+            }
         }
 
         std::unordered_map<EdgeKey, unsigned, EdgeKeyHash, EdgeKeyEqual> new_edge_by_key;
@@ -832,17 +894,6 @@ namespace halfMesh {
         vertex_data_store = remap_property_store(old_vertex_properties, result.vertex_handle_remap);
         edge_data_store = remap_property_store(old_edge_properties, result.edge_handle_remap);
         face_data_store = remap_property_store(old_face_properties, result.face_handle_remap);
-
-        std::unordered_set<unsigned> current_edge_handles;
-        for (const auto &ne: edges_) {
-            if (ne) current_edge_handles.insert(ne->get_handle());
-        }
-        for (const auto &[old_edge_handle, new_edge_handle]: result.edge_handle_remap) {
-            (void) old_edge_handle;
-            current_edge_handles.erase(new_edge_handle);
-        }
-        result.created_edges.assign(current_edge_handles.begin(), current_edge_handles.end());
-        std::sort(result.created_edges.begin(), result.created_edges.end());
 
         result.ok = true;
         return result;
@@ -952,22 +1003,6 @@ namespace halfMesh {
         const nlohmann::json old_edge_properties = edge_data_store;
         const nlohmann::json old_face_properties = face_data_store;
 
-        struct OldEdgeInfo {
-            unsigned handle = 0;
-            unsigned v1 = 0;
-            unsigned v2 = 0;
-        };
-        std::vector<OldEdgeInfo> old_edges;
-        old_edges.reserve(edges_.size());
-        for (const auto &old_edge: edges_) {
-            const auto ov1 = old_edge->get_vertex_one();
-            const auto ov2 = old_edge->get_vertex_two();
-            if (!ov1 || !ov2) {
-                continue;
-            }
-            old_edges.push_back({old_edge->get_handle(), ov1->get_handle(), ov2->get_handle()});
-        }
-
         const auto get_opposite = [&](const facePtr &f) -> vertexPtr {
             const auto verts = get_oriented_face_vertices(f);
             for (const auto &v: verts) {
@@ -989,117 +1024,96 @@ namespace halfMesh {
             return result;
         }
 
-        struct FaceRebuildPlan {
-            std::array<unsigned, 3> tri{};
-            unsigned old_face_handle = 0;
-        };
-        std::vector<FaceRebuildPlan> rebuilt_faces;
-        rebuilt_faces.reserve(faces_.size());
-        for (const auto &f: faces_) {
-            if (!f) {
-                result.error = "Null face encountered during flip rebuild.";
-                return result;
-            }
-            if (f->get_handle() == f0->get_handle() || f->get_handle() == f1->get_handle()) {
-                continue;
-            }
-            const auto verts = get_oriented_face_vertices(f);
-            if (!verts[0] || !verts[1] || !verts[2]) {
-                result.error = "Invalid face cycle encountered during flip rebuild.";
-                return result;
-            }
-            rebuilt_faces.push_back({to_handle_triplet(verts), f->get_handle()});
-        }
+        const auto before_vertices = collect_vertex_handles(vertices_);
+        const auto before_edges = collect_edge_handles(edges_);
+        const auto before_faces = collect_face_handles(faces_);
 
-        rebuilt_faces.push_back({{c->get_handle(), d->get_handle(), b->get_handle()}, f0_handle});
-        rebuilt_faces.push_back({{d->get_handle(), c->get_handle(), a->get_handle()}, f1_handle});
         result.removed_faces = {f0_handle, f1_handle};
         result.removed_edges = {flipped_edge_handle};
 
-        std::vector<vertexPtr> kept_vertices;
-        kept_vertices.reserve(vertices_.size());
-        for (const auto &v: vertices_) {
-            if (!v) {
-                continue;
-            }
-            kept_vertices.push_back(v);
+        if (!delete_face(f0) || !delete_face(f1)) {
+            result.error = "Failed to delete source faces during flip.";
+            return result;
         }
-        std::sort(kept_vertices.begin(), kept_vertices.end(),
-                  [](const vertexPtr &lhs, const vertexPtr &rhs) {
-                      return lhs->get_handle() < rhs->get_handle();
-                  });
-
-        std::unordered_map<unsigned, vertexPtr> remap;
-        remap.reserve(kept_vertices.size());
-
-        clear_data();
-
-        for (const auto &v: kept_vertices) {
-            const auto new_vertex = add_vertex(v->get_x(), v->get_y(), v->get_z());
-            remap[v->get_handle()] = new_vertex;
-            result.vertex_handle_remap[v->get_handle()] = new_vertex->get_handle();
+        if (!delete_edge(e)) {
+            result.error = "Failed to delete source edge during flip.";
+            return result;
         }
 
-        for (const auto &plan: rebuilt_faces) {
-            const auto &tri = plan.tri;
-            const auto it0 = remap.find(tri[0]);
-            const auto it1 = remap.find(tri[1]);
-            const auto it2 = remap.find(tri[2]);
-            if (it0 == remap.end() || it1 == remap.end() || it2 == remap.end()) {
-                result.error = "Vertex remap failed during flip rebuild.";
-                return result;
-            }
-            const auto new_face = add_face(it0->second, it1->second, it2->second);
-            if (!new_face) {
-                result.error = "Failed to rebuild face during flip.";
-                return result;
-            }
-            result.face_handle_remap[plan.old_face_handle] = new_face->get_handle();
+        const auto new_f0 = add_face(c, d, b);
+        const auto new_f1 = add_face(d, c, a);
+        if (!new_f0 || !new_f1) {
+            result.error = "Failed to create flipped faces.";
+            return result;
         }
+        result.face_handle_remap[f0_handle] = new_f0->get_handle();
+        result.face_handle_remap[f1_handle] = new_f1->get_handle();
+        result.created_faces = {new_f0->get_handle(), new_f1->get_handle()};
+        std::sort(result.created_faces.begin(), result.created_faces.end());
 
-        std::unordered_map<EdgeKey, unsigned, EdgeKeyHash, EdgeKeyEqual> new_edge_by_key;
-        for (const auto &new_edge: edges_) {
-            const auto nv1 = new_edge->get_vertex_one();
-            const auto nv2 = new_edge->get_vertex_two();
-            if (!nv1 || !nv2) {
-                continue;
-            }
-            new_edge_by_key[make_edge_key(nv1->get_handle(), nv2->get_handle())] = new_edge->get_handle();
+        const auto new_cd_edge = edge_lookup_.find(make_edge_key(c->get_handle(), d->get_handle()));
+        if (new_cd_edge == edge_lookup_.end()) {
+            result.error = "Failed to locate new diagonal edge after flip.";
+            return result;
         }
+        result.edge_handle_remap[flipped_edge_handle] = new_cd_edge->second;
+        result.created_edges = {new_cd_edge->second};
 
-        for (const auto &old_edge: old_edges) {
-            const auto it1 = result.vertex_handle_remap.find(old_edge.v1);
-            const auto it2 = result.vertex_handle_remap.find(old_edge.v2);
-            if (it1 == result.vertex_handle_remap.end() || it2 == result.vertex_handle_remap.end()) {
-                continue;
-            }
-            const auto key = make_edge_key(it1->second, it2->second);
-            if (const auto neit = new_edge_by_key.find(key); neit != new_edge_by_key.end()) {
-                result.edge_handle_remap[old_edge.handle] = neit->second;
+        // Local flip keeps vertex handles unchanged.
+        for (const auto h: before_vertices) {
+            if (has_vertex_handle(h)) {
+                result.vertex_handle_remap[h] = h;
             }
         }
 
-        // Explicitly map old flipped edge to new diagonal (c,d).
-        const auto c_new = result.vertex_handle_remap[c->get_handle()];
-        const auto d_new = result.vertex_handle_remap[d->get_handle()];
-        if (const auto it = new_edge_by_key.find(make_edge_key(c_new, d_new)); it != new_edge_by_key.end()) {
-            result.edge_handle_remap[flipped_edge_handle] = it->second;
+        // Preserve unchanged edge/face remaps as identity.
+        for (const auto h: before_edges) {
+            if (h != flipped_edge_handle && has_edge_handle(h)) {
+                result.edge_handle_remap[h] = h;
+            }
+        }
+        for (const auto h: before_faces) {
+            if (h != f0_handle && h != f1_handle && has_face_handle(h)) {
+                result.face_handle_remap[h] = h;
+            }
         }
 
         vertex_data_store = remap_property_store(old_vertex_properties, result.vertex_handle_remap);
         edge_data_store = remap_property_store(old_edge_properties, result.edge_handle_remap);
         face_data_store = remap_property_store(old_face_properties, result.face_handle_remap);
 
-        if (const auto it = result.edge_handle_remap.find(flipped_edge_handle);
-            it != result.edge_handle_remap.end()) {
-            result.created_edges = {it->second};
-        }
-        for (const auto &[old_face_handle, new_face_handle]: result.face_handle_remap) {
-            if (old_face_handle == f0_handle || old_face_handle == f1_handle) {
-                result.created_faces.push_back(new_face_handle);
+        // Keep explicit property inheritance for changed entities.
+        for (auto it = old_face_properties.begin(); it != old_face_properties.end(); ++it) {
+            nlohmann::json v0prop;
+            nlohmann::json v1prop;
+            if (try_get_property_value_for_handle(it.value(), f0_handle, v0prop)) {
+                set_property_value_for_handle(face_data_store[it.key()], new_f0->get_handle(), v0prop);
+            }
+            if (try_get_property_value_for_handle(it.value(), f1_handle, v1prop)) {
+                set_property_value_for_handle(face_data_store[it.key()], new_f1->get_handle(), v1prop);
             }
         }
-        std::sort(result.created_faces.begin(), result.created_faces.end());
+        for (auto it = old_edge_properties.begin(); it != old_edge_properties.end(); ++it) {
+            nlohmann::json eprop;
+            if (try_get_property_value_for_handle(it.value(), flipped_edge_handle, eprop)) {
+                set_property_value_for_handle(edge_data_store[it.key()], new_cd_edge->second, eprop);
+            }
+        }
+
+        const auto after_edges = collect_edge_handles(edges_);
+        const auto after_faces = collect_face_handles(faces_);
+        const auto removed_edges = set_difference(before_edges, after_edges);
+        for (const auto h: removed_edges) {
+            if (std::find(result.removed_edges.begin(), result.removed_edges.end(), h) == result.removed_edges.end()) {
+                result.removed_edges.push_back(h);
+            }
+        }
+        const auto removed_faces = set_difference(before_faces, after_faces);
+        for (const auto h: removed_faces) {
+            if (std::find(result.removed_faces.begin(), result.removed_faces.end(), h) == result.removed_faces.end()) {
+                result.removed_faces.push_back(h);
+            }
+        }
 
         result.ok = true;
         return result;

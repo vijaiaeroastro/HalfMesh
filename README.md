@@ -32,14 +32,22 @@ Current test binaries (run independently or via `ctest`):
 Edge split API:
 - `split_edge(edge, t)` splits at fraction `t` along the edge (`0 < t < 1`, default `t=0.5`)
 - returns `EditResult` with created/removed handles and remap metadata
+- local edit: only incident topology is changed; unrelated handles stay stable
 
 Edge collapse API:
 - `can_collapse(edge, target_vertex)` checks collapse preconditions
 - `collapse_edge(edge, target_vertex)` collapses to one endpoint if valid and returns `EditResult`
+- local edit: only source-vertex incident topology is rewritten; unrelated handles stay stable
 
 Edge flip API:
 - `can_flip(edge)` checks interior/validity constraints
 - `flip_edge(edge)` swaps the diagonal between two incident triangles and returns `EditResult`
+- local edit: only the two incident faces plus the flipped edge are changed
+
+`EditResult` includes:
+- `ok` and `error`
+- `created_*` / `removed_*` handle lists
+- `vertex_handle_remap`, `edge_handle_remap`, `face_handle_remap`
 
 ## TDD Checklist
 

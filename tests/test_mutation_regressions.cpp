@@ -387,6 +387,105 @@ void test_flip_edit_result_and_face_property_remap() {
     assert(id0 == 101);
     assert(id1 == 202);
 }
+
+void test_flip_keeps_unrelated_handles_stable() {
+    halfMesh::triMesh mesh;
+    const auto a = mesh.add_vertex(0.0, 0.0, 0.0);
+    const auto b = mesh.add_vertex(2.0, 0.0, 0.0);
+    const auto c = mesh.add_vertex(0.0, 2.0, 0.0);
+    const auto d = mesh.add_vertex(2.0, 2.0, 0.0);
+    const auto x = mesh.add_vertex(10.0, 0.0, 0.0);
+    const auto y = mesh.add_vertex(11.0, 0.0, 0.0);
+    const auto z = mesh.add_vertex(10.0, 1.0, 0.0);
+    assert(mesh.add_face(a, b, c) != nullptr);
+    assert(mesh.add_face(b, a, d) != nullptr);
+    assert(mesh.add_face(x, y, z) != nullptr);
+    mesh.complete_mesh();
+
+    assert(mesh.add_vertex_property("marker", 0) == halfMesh::PropertyStatus::Added);
+    assert(mesh.try_set_vertex_property("marker", x->get_handle(), 99) == halfMesh::PropertyStatus::Added);
+
+    const auto old_x_handle = x->get_handle();
+    const auto old_extra_face_handle = mesh.get_faces().back()->get_handle();
+
+    const auto edge_ab = find_edge_between(mesh, a, b);
+    assert(edge_ab != nullptr);
+    const auto edit = mesh.flip_edge(edge_ab);
+    assert(edit.ok);
+    mesh.complete_mesh();
+
+    // Unrelated component should keep handles and properties unchanged.
+    assert(mesh.get_vertex(old_x_handle) != nullptr);
+    int marker = -1;
+    assert(mesh.try_get_vertex_property("marker", old_x_handle, marker));
+    assert(marker == 99);
+    assert(mesh.get_face(old_extra_face_handle) != nullptr);
+}
+
+void test_split_keeps_unrelated_handles_stable() {
+    halfMesh::triMesh mesh;
+    const auto a = mesh.add_vertex(0.0, 0.0, 0.0);
+    const auto b = mesh.add_vertex(4.0, 0.0, 0.0);
+    const auto c = mesh.add_vertex(0.0, 2.0, 0.0);
+    const auto x = mesh.add_vertex(10.0, 0.0, 0.0);
+    const auto y = mesh.add_vertex(11.0, 0.0, 0.0);
+    const auto z = mesh.add_vertex(10.0, 1.0, 0.0);
+    assert(mesh.add_face(a, b, c) != nullptr);
+    assert(mesh.add_face(x, y, z) != nullptr);
+    mesh.complete_mesh();
+
+    assert(mesh.add_vertex_property("marker", 0) == halfMesh::PropertyStatus::Added);
+    assert(mesh.try_set_vertex_property("marker", x->get_handle(), 77) == halfMesh::PropertyStatus::Added);
+
+    const auto old_x_handle = x->get_handle();
+    const auto edge_ab = find_edge_between(mesh, a, b);
+    assert(edge_ab != nullptr);
+    const auto edit = mesh.split_edge(edge_ab, 0.5);
+    assert(edit.ok);
+    mesh.complete_mesh();
+
+    // Unrelated component remains stable.
+    assert(mesh.get_vertex(old_x_handle) != nullptr);
+    int marker = -1;
+    assert(mesh.try_get_vertex_property("marker", old_x_handle, marker));
+    assert(marker == 77);
+    assert(edit.vertex_handle_remap.count(old_x_handle) == 1);
+    assert(edit.vertex_handle_remap.at(old_x_handle) == old_x_handle);
+}
+
+void test_collapse_keeps_unrelated_handles_stable() {
+    halfMesh::triMesh mesh;
+    const auto a = mesh.add_vertex(0.0, 0.0, 0.0);
+    const auto b = mesh.add_vertex(2.0, 0.0, 0.0);
+    const auto c = mesh.add_vertex(0.0, 2.0, 0.0);
+    const auto d = mesh.add_vertex(2.0, 2.0, 0.0);
+    const auto x = mesh.add_vertex(10.0, 0.0, 0.0);
+    const auto y = mesh.add_vertex(11.0, 0.0, 0.0);
+    const auto z = mesh.add_vertex(10.0, 1.0, 0.0);
+    assert(mesh.add_face(a, b, c) != nullptr);
+    assert(mesh.add_face(b, a, d) != nullptr);
+    assert(mesh.add_face(x, y, z) != nullptr);
+    mesh.complete_mesh();
+
+    assert(mesh.add_vertex_property("marker", 0) == halfMesh::PropertyStatus::Added);
+    assert(mesh.try_set_vertex_property("marker", x->get_handle(), 55) == halfMesh::PropertyStatus::Added);
+    const auto old_x_handle = x->get_handle();
+    const auto old_extra_face_handle = mesh.get_faces().back()->get_handle();
+
+    const auto edge_ab = find_edge_between(mesh, a, b);
+    assert(edge_ab != nullptr);
+    const auto edit = mesh.collapse_edge(edge_ab, a);
+    assert(edit.ok);
+    mesh.complete_mesh();
+
+    assert(mesh.get_vertex(old_x_handle) != nullptr);
+    int marker = -1;
+    assert(mesh.try_get_vertex_property("marker", old_x_handle, marker));
+    assert(marker == 55);
+    assert(mesh.get_face(old_extra_face_handle) != nullptr);
+    assert(edit.vertex_handle_remap.count(old_x_handle) == 1);
+    assert(edit.vertex_handle_remap.at(old_x_handle) == old_x_handle);
+}
 } // namespace
 
 int main() {
@@ -405,6 +504,9 @@ int main() {
     test_split_edit_result_and_property_propagation();
     test_collapse_edit_result_has_vertex_remap_and_properties();
     test_flip_edit_result_and_face_property_remap();
+    test_flip_keeps_unrelated_handles_stable();
+    test_split_keeps_unrelated_handles_stable();
+    test_collapse_keeps_unrelated_handles_stable();
     std::cout << "halfMesh mutation/regression tests passed\n";
     return 0;
 }
