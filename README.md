@@ -30,16 +30,16 @@ Current test binaries (run independently or via `ctest`):
 - `halfMesh_test_mutation`
 
 Edge split API:
-- `split_edge(edge)` splits at midpoint (`t = 0.5`)
-- `split_edge(edge, t)` splits at fraction `t` along the edge (`0 < t < 1`)
+- `split_edge(edge, t)` splits at fraction `t` along the edge (`0 < t < 1`, default `t=0.5`)
+- returns `EditResult` with created/removed handles and remap metadata
 
 Edge collapse API:
 - `can_collapse(edge, target_vertex)` checks collapse preconditions
-- `collapse_edge(edge, target_vertex)` collapses to one endpoint if valid
+- `collapse_edge(edge, target_vertex)` collapses to one endpoint if valid and returns `EditResult`
 
 Edge flip API:
 - `can_flip(edge)` checks interior/validity constraints
-- `flip_edge(edge)` swaps the diagonal between two incident triangles
+- `flip_edge(edge)` swaps the diagonal between two incident triangles and returns `EditResult`
 
 ## TDD Checklist
 

@@ -60,6 +60,117 @@ namespace halfMesh {
         };
     }
 
+    bool try_get_property_value_for_handle(const nlohmann::json &bucket,
+                                           const unsigned handle,
+                                           nlohmann::json &out) {
+        if (bucket.is_array()) {
+            if (handle < bucket.size()) {
+                out = bucket.at(handle);
+                return true;
+            }
+            return false;
+        }
+
+        const std::string key = std::to_string(handle);
+        if (bucket.contains(key)) {
+            out = bucket.at(key);
+            return true;
+        }
+        return false;
+    }
+
+    void set_property_value_for_handle(nlohmann::json &bucket,
+                                       const unsigned handle,
+                                       const nlohmann::json &value) {
+        if (bucket.is_array()) {
+            while (bucket.size() <= handle) {
+                bucket.push_back(nullptr);
+            }
+            bucket[handle] = value;
+            return;
+        }
+        bucket[std::to_string(handle)] = value;
+    }
+
+    nlohmann::json remap_property_store(const nlohmann::json &store,
+                                        const std::unordered_map<unsigned, unsigned> &handle_remap) {
+        nlohmann::json out = nlohmann::json::object();
+        if (!store.is_object()) {
+            return out;
+        }
+
+        for (auto it = store.begin(); it != store.end(); ++it) {
+            nlohmann::json remapped_bucket = nlohmann::json::object();
+            for (const auto &[old_handle, new_handle]: handle_remap) {
+                nlohmann::json value;
+                if (try_get_property_value_for_handle(it.value(), old_handle, value)) {
+                    set_property_value_for_handle(remapped_bucket, new_handle, value);
+                }
+            }
+            out[it.key()] = std::move(remapped_bucket);
+        }
+        return out;
+    }
+
+    nlohmann::json interpolate_property_value(const nlohmann::json &a,
+                                              const nlohmann::json &b,
+                                              const double t) {
+        if (a.is_number() && b.is_number()) {
+            const double av = a.get<double>();
+            const double bv = b.get<double>();
+            return (1.0 - t) * av + t * bv;
+        }
+        if (a == b) {
+            return a;
+        }
+        return (t < 0.5) ? a : b;
+    }
+
+    std::unordered_set<unsigned> collect_vertex_handles(const std::vector<vertexPtr> &vertices) {
+        std::unordered_set<unsigned> out;
+        out.reserve(vertices.size());
+        for (const auto &v: vertices) {
+            if (v) {
+                out.insert(v->get_handle());
+            }
+        }
+        return out;
+    }
+
+    std::unordered_set<unsigned> collect_edge_handles(const std::vector<edgePtr> &edges) {
+        std::unordered_set<unsigned> out;
+        out.reserve(edges.size());
+        for (const auto &e: edges) {
+            if (e) {
+                out.insert(e->get_handle());
+            }
+        }
+        return out;
+    }
+
+    std::unordered_set<unsigned> collect_face_handles(const std::vector<facePtr> &faces) {
+        std::unordered_set<unsigned> out;
+        out.reserve(faces.size());
+        for (const auto &f: faces) {
+            if (f) {
+                out.insert(f->get_handle());
+            }
+        }
+        return out;
+    }
+
+    std::vector<unsigned> set_difference(const std::unordered_set<unsigned> &after,
+                                         const std::unordered_set<unsigned> &before) {
+        std::vector<unsigned> out;
+        for (const auto h: after) {
+            if (!before.count(h)) {
+                out.push_back(h);
+            }
+        }
+        std::sort(out.begin(), out.end());
+        return out;
+    }
+
     triMesh::triMesh() = default;
 
     triMesh::~triMesh() = default;
@@ -332,21 +443,33 @@ namespace halfMesh {
         return true;
     }
 
-    vertexPtr triMesh::split_edge(const edgePtr &e) {
-        return split_edge(e, 0.5);
-    }
+    EditResult triMesh::split_edge(const edgePtr &e, const double t) {
+        EditResult result{};
 
-    vertexPtr triMesh::split_edge(const edgePtr &e, const double t) {
         if (!(t > 0.0 && t < 1.0)) {
-            return nullptr;
+            result.error = "Split parameter t must satisfy 0 < t < 1.";
+            return result;
         }
 
         if (!can_split(e)) {
-            return nullptr;
+            result.error = "Edge does not satisfy split preconditions.";
+            return result;
         }
 
         const auto a = e->get_vertex_one();
         const auto b = e->get_vertex_two();
+        const unsigned edge_handle = e->get_handle();
+        const unsigned a_handle = a->get_handle();
+        const unsigned b_handle = b->get_handle();
+
+        const auto before_vertices = collect_vertex_handles(vertices_);
+        const auto before_edges = collect_edge_handles(edges_);
+        const auto before_faces = collect_face_handles(faces_);
+
+        const nlohmann::json old_vertex_properties = vertex_data_store;
+        const nlohmann::json old_edge_properties = edge_data_store;
+        const nlohmann::json old_face_properties = face_data_store;
+
         const double mx = (1.0 - t) * a->get_x() + t * b->get_x();
         const double my = (1.0 - t) * a->get_y() + t * b->get_y();
         const double mz = (1.0 - t) * a->get_z() + t * b->get_z();
@@ -356,6 +479,7 @@ namespace halfMesh {
             vertexPtr u;
             vertexPtr v;
             vertexPtr w;
+            unsigned face_handle = 0;
         };
 
         std::vector<FaceSplitPlan> plans;
@@ -374,7 +498,8 @@ namespace halfMesh {
         }
 
         if (plans.empty() || plans.size() > 2) {
-            return nullptr;
+            result.error = "Split edge must have one or two incident faces.";
+            return result;
         }
 
         for (auto &plan: plans) {
@@ -385,7 +510,8 @@ namespace halfMesh {
                 const auto v = verts[(i + 1) % 3];
                 const auto w = verts[(i + 2) % 3];
                 if (!u || !v || !w) {
-                    return nullptr;
+                    result.error = "Incident face has invalid vertex data.";
+                    return result;
                 }
                 const bool matches_ab = u->get_handle() == a->get_handle() && v->get_handle() == b->get_handle();
                 const bool matches_ba = u->get_handle() == b->get_handle() && v->get_handle() == a->get_handle();
@@ -393,39 +519,118 @@ namespace halfMesh {
                     plan.u = u;
                     plan.v = v;
                     plan.w = w;
+                    plan.face_handle = plan.face_ref->get_handle();
                     found = true;
                     break;
                 }
             }
             if (!found || !plan.u || !plan.v || !plan.w) {
-                return nullptr;
+                result.error = "Could not build split plan for incident face.";
+                return result;
             }
         }
 
         for (const auto &plan: plans) {
             if (!delete_face(plan.face_ref)) {
-                return nullptr;
+                result.error = "Failed to delete incident face during split.";
+                return result;
             }
+            result.removed_faces.push_back(plan.face_handle);
         }
         if (!delete_edge(e)) {
-            return nullptr;
+            result.error = "Failed to delete source edge during split.";
+            return result;
         }
+        result.removed_edges.push_back(edge_handle);
 
         const auto mid = add_vertex(mx, my, mz);
         if (!mid) {
-            return nullptr;
+            result.error = "Failed to create split vertex.";
+            return result;
         }
+        result.created_vertices.push_back(mid->get_handle());
 
+        std::unordered_map<unsigned, std::vector<unsigned> > face_split_children;
         for (const auto &plan: plans) {
-            if (!add_face(plan.u, mid, plan.w)) {
-                return nullptr;
+            const auto f1 = add_face(plan.u, mid, plan.w);
+            if (!f1) {
+                result.error = "Failed to create first child face during split.";
+                return result;
             }
-            if (!add_face(mid, plan.v, plan.w)) {
-                return nullptr;
+            const auto f2 = add_face(mid, plan.v, plan.w);
+            if (!f2) {
+                result.error = "Failed to create second child face during split.";
+                return result;
+            }
+            face_split_children[plan.face_handle] = {f1->get_handle(), f2->get_handle()};
+        }
+
+        const auto after_vertices = collect_vertex_handles(vertices_);
+        const auto after_edges = collect_edge_handles(edges_);
+        const auto after_faces = collect_face_handles(faces_);
+        result.created_edges = set_difference(after_edges, before_edges);
+        const auto removed_vertices = set_difference(before_vertices, after_vertices);
+        result.removed_vertices.insert(result.removed_vertices.end(), removed_vertices.begin(), removed_vertices.end());
+        const auto removed_edges = set_difference(before_edges, after_edges);
+        for (const auto h: removed_edges) {
+            if (std::find(result.removed_edges.begin(), result.removed_edges.end(), h) == result.removed_edges.end()) {
+                result.removed_edges.push_back(h);
+            }
+        }
+        result.created_faces = set_difference(after_faces, before_faces);
+
+        // Vertex property propagation: interpolate source edge endpoint values to the split vertex.
+        for (auto it = old_vertex_properties.begin(); it != old_vertex_properties.end(); ++it) {
+            nlohmann::json av;
+            nlohmann::json bv;
+            if (try_get_property_value_for_handle(it.value(), a_handle, av) &&
+                try_get_property_value_for_handle(it.value(), b_handle, bv)) {
+                const auto blended = interpolate_property_value(av, bv, t);
+                set_property_value_for_handle(vertex_data_store[it.key()], mid->get_handle(), blended);
             }
         }
 
-        return mid;
+        // Face property propagation: each split child inherits its parent face properties.
+        for (const auto &[old_face_handle, new_face_handles]: face_split_children) {
+            for (auto it = old_face_properties.begin(); it != old_face_properties.end(); ++it) {
+                nlohmann::json old_value;
+                if (!try_get_property_value_for_handle(it.value(), old_face_handle, old_value)) {
+                    continue;
+                }
+                for (const auto new_face_handle: new_face_handles) {
+                    set_property_value_for_handle(face_data_store[it.key()], new_face_handle, old_value);
+                }
+            }
+        }
+
+        // Edge property propagation: children on the original edge inherit source edge properties.
+        for (auto it = old_edge_properties.begin(); it != old_edge_properties.end(); ++it) {
+            nlohmann::json old_edge_value;
+            if (!try_get_property_value_for_handle(it.value(), edge_handle, old_edge_value)) {
+                continue;
+            }
+            for (const auto new_edge_handle: result.created_edges) {
+                const auto new_edge = get_edge(new_edge_handle);
+                if (!new_edge) {
+                    continue;
+                }
+                const auto ev1 = new_edge->get_vertex_one();
+                const auto ev2 = new_edge->get_vertex_two();
+                if (!ev1 || !ev2) {
+                    continue;
+                }
+                const bool touches_mid = ev1->get_handle() == mid->get_handle() || ev2->get_handle() == mid->get_handle();
+                const bool touches_original_endpoint =
+                    ev1->get_handle() == a_handle || ev1->get_handle() == b_handle ||
+                    ev2->get_handle() == a_handle || ev2->get_handle() == b_handle;
+                if (touches_mid && touches_original_endpoint) {
+                    set_property_value_for_handle(edge_data_store[it.key()], new_edge_handle, old_edge_value);
+                }
+            }
+        }
+
+        result.ok = true;
+        return result;
     }
 
     bool triMesh::can_collapse(const edgePtr &e, const vertexPtr &target) const {
@@ -488,17 +693,45 @@ namespace halfMesh {
         return true;
     }
 
-    bool triMesh::collapse_edge(const edgePtr &e, const vertexPtr &target) {
+    EditResult triMesh::collapse_edge(const edgePtr &e, const vertexPtr &target) {
+        EditResult result{};
+
         if (!can_collapse(e, target)) {
-            return false;
+            result.error = "Edge collapse preconditions failed.";
+            return result;
         }
 
         const auto v0 = e->get_vertex_one();
         const auto v1 = e->get_vertex_two();
         const auto target_h = target->get_handle();
         const auto source_h = (target_h == v0->get_handle()) ? v1->get_handle() : v0->get_handle();
+        const unsigned collapsed_edge_handle = e->get_handle();
 
-        std::vector<std::array<unsigned, 3> > rebuilt_faces;
+        const nlohmann::json old_vertex_properties = vertex_data_store;
+        const nlohmann::json old_edge_properties = edge_data_store;
+        const nlohmann::json old_face_properties = face_data_store;
+
+        struct OldEdgeInfo {
+            unsigned handle = 0;
+            unsigned v1 = 0;
+            unsigned v2 = 0;
+        };
+        std::vector<OldEdgeInfo> old_edges;
+        old_edges.reserve(edges_.size());
+        for (const auto &old_edge: edges_) {
+            const auto ov1 = old_edge->get_vertex_one();
+            const auto ov2 = old_edge->get_vertex_two();
+            if (!ov1 || !ov2) {
+                continue;
+            }
+            old_edges.push_back({old_edge->get_handle(), ov1->get_handle(), ov2->get_handle()});
+        }
+
+        struct FaceRebuildPlan {
+            std::array<unsigned, 3> tri{};
+            unsigned old_face_handle = 0;
+        };
+        std::vector<FaceRebuildPlan> rebuilt_faces;
         rebuilt_faces.reserve(faces_.size());
 
         for (const auto &f: faces_) {
@@ -506,6 +739,7 @@ namespace halfMesh {
             const bool has_target = face_contains_handle(verts, target_h);
             const bool has_source = face_contains_handle(verts, source_h);
             if (has_target && has_source) {
+                result.removed_faces.push_back(f->get_handle());
                 continue;
             }
 
@@ -516,10 +750,13 @@ namespace halfMesh {
                 }
             }
             if (h[0] == h[1] || h[1] == h[2] || h[2] == h[0]) {
-                return false;
+                result.error = "Collapse would create a degenerate face.";
+                return result;
             }
-            rebuilt_faces.push_back(h);
+            rebuilt_faces.push_back({h, f->get_handle()});
         }
+        result.removed_vertices.push_back(source_h);
+        result.removed_edges.push_back(collapsed_edge_handle);
 
         std::vector<vertexPtr> kept_vertices;
         kept_vertices.reserve(vertices_.size());
@@ -541,22 +778,74 @@ namespace halfMesh {
         clear_data();
 
         for (const auto &v: kept_vertices) {
-            remap[v->get_handle()] = add_vertex(v->get_x(), v->get_y(), v->get_z());
+            const auto new_vertex = add_vertex(v->get_x(), v->get_y(), v->get_z());
+            remap[v->get_handle()] = new_vertex;
+            result.vertex_handle_remap[v->get_handle()] = new_vertex->get_handle();
         }
 
-        for (const auto &tri: rebuilt_faces) {
+        for (const auto &plan: rebuilt_faces) {
+            const auto &tri = plan.tri;
             const auto it0 = remap.find(tri[0]);
             const auto it1 = remap.find(tri[1]);
             const auto it2 = remap.find(tri[2]);
             if (it0 == remap.end() || it1 == remap.end() || it2 == remap.end()) {
-                return false;
+                result.error = "Vertex remap failed during collapse rebuild.";
+                return result;
             }
-            if (!add_face(it0->second, it1->second, it2->second)) {
-                return false;
+            const auto new_face = add_face(it0->second, it1->second, it2->second);
+            if (!new_face) {
+                result.error = "Failed to rebuild face during collapse.";
+                return result;
+            }
+            result.face_handle_remap[plan.old_face_handle] = new_face->get_handle();
+        }
+
+        std::unordered_map<EdgeKey, unsigned, EdgeKeyHash, EdgeKeyEqual> new_edge_by_key;
+        for (const auto &new_edge: edges_) {
+            const auto nv1 = new_edge->get_vertex_one();
+            const auto nv2 = new_edge->get_vertex_two();
+            if (!nv1 || !nv2) {
+                continue;
+            }
+            new_edge_by_key[make_edge_key(nv1->get_handle(), nv2->get_handle())] = new_edge->get_handle();
+        }
+
+        for (const auto &old_edge: old_edges) {
+            auto ov1 = old_edge.v1;
+            auto ov2 = old_edge.v2;
+            if (ov1 == source_h) ov1 = target_h;
+            if (ov2 == source_h) ov2 = target_h;
+            const auto it1 = result.vertex_handle_remap.find(ov1);
+            const auto it2 = result.vertex_handle_remap.find(ov2);
+            if (it1 == result.vertex_handle_remap.end() || it2 == result.vertex_handle_remap.end()) {
+                continue;
+            }
+            if (it1->second == it2->second) {
+                continue;
+            }
+            const EdgeKey new_key = make_edge_key(it1->second, it2->second);
+            if (const auto neit = new_edge_by_key.find(new_key); neit != new_edge_by_key.end()) {
+                result.edge_handle_remap[old_edge.handle] = neit->second;
             }
         }
 
-        return true;
+        vertex_data_store = remap_property_store(old_vertex_properties, result.vertex_handle_remap);
+        edge_data_store = remap_property_store(old_edge_properties, result.edge_handle_remap);
+        face_data_store = remap_property_store(old_face_properties, result.face_handle_remap);
+
+        std::unordered_set<unsigned> current_edge_handles;
+        for (const auto &ne: edges_) {
+            if (ne) current_edge_handles.insert(ne->get_handle());
+        }
+        for (const auto &[old_edge_handle, new_edge_handle]: result.edge_handle_remap) {
+            (void) old_edge_handle;
+            current_edge_handles.erase(new_edge_handle);
+        }
+        result.created_edges.assign(current_edge_handles.begin(), current_edge_handles.end());
+        std::sort(result.created_edges.begin(), result.created_edges.end());
+
+        result.ok = true;
+        return result;
     }
 
     bool triMesh::can_flip(const edgePtr &e) const {
@@ -641,17 +930,43 @@ namespace halfMesh {
         return true;
     }
 
-    bool triMesh::flip_edge(const edgePtr &e) {
+    EditResult triMesh::flip_edge(const edgePtr &e) {
+        EditResult result{};
+
         if (!can_flip(e)) {
-            return false;
+            result.error = "Edge flip preconditions failed.";
+            return result;
         }
 
         const auto a = e->get_vertex_one();
         const auto b = e->get_vertex_two();
+        const auto flipped_edge_handle = e->get_handle();
         const auto he0 = e->get_one_half_edge();
         const auto opp = he0->get_opposing_half_edge();
         const auto f0 = he0->get_parent_face();
         const auto f1 = opp->get_parent_face();
+        const auto f0_handle = f0->get_handle();
+        const auto f1_handle = f1->get_handle();
+
+        const nlohmann::json old_vertex_properties = vertex_data_store;
+        const nlohmann::json old_edge_properties = edge_data_store;
+        const nlohmann::json old_face_properties = face_data_store;
+
+        struct OldEdgeInfo {
+            unsigned handle = 0;
+            unsigned v1 = 0;
+            unsigned v2 = 0;
+        };
+        std::vector<OldEdgeInfo> old_edges;
+        old_edges.reserve(edges_.size());
+        for (const auto &old_edge: edges_) {
+            const auto ov1 = old_edge->get_vertex_one();
+            const auto ov2 = old_edge->get_vertex_two();
+            if (!ov1 || !ov2) {
+                continue;
+            }
+            old_edges.push_back({old_edge->get_handle(), ov1->get_handle(), ov2->get_handle()});
+        }
 
         const auto get_opposite = [&](const facePtr &f) -> vertexPtr {
             const auto verts = get_oriented_face_vertices(f);
@@ -670,27 +985,36 @@ namespace halfMesh {
         const auto c = get_opposite(f0);
         const auto d = get_opposite(f1);
         if (!c || !d) {
-            return false;
+            result.error = "Could not determine opposite vertices for flip.";
+            return result;
         }
 
-        std::vector<std::array<unsigned, 3> > rebuilt_faces;
+        struct FaceRebuildPlan {
+            std::array<unsigned, 3> tri{};
+            unsigned old_face_handle = 0;
+        };
+        std::vector<FaceRebuildPlan> rebuilt_faces;
         rebuilt_faces.reserve(faces_.size());
         for (const auto &f: faces_) {
             if (!f) {
-                return false;
+                result.error = "Null face encountered during flip rebuild.";
+                return result;
             }
             if (f->get_handle() == f0->get_handle() || f->get_handle() == f1->get_handle()) {
                 continue;
             }
             const auto verts = get_oriented_face_vertices(f);
             if (!verts[0] || !verts[1] || !verts[2]) {
-                return false;
+                result.error = "Invalid face cycle encountered during flip rebuild.";
+                return result;
             }
-            rebuilt_faces.push_back(to_handle_triplet(verts));
+            rebuilt_faces.push_back({to_handle_triplet(verts), f->get_handle()});
         }
 
-        rebuilt_faces.push_back({c->get_handle(), d->get_handle(), b->get_handle()});
-        rebuilt_faces.push_back({d->get_handle(), c->get_handle(), a->get_handle()});
+        rebuilt_faces.push_back({{c->get_handle(), d->get_handle(), b->get_handle()}, f0_handle});
+        rebuilt_faces.push_back({{d->get_handle(), c->get_handle(), a->get_handle()}, f1_handle});
+        result.removed_faces = {f0_handle, f1_handle};
+        result.removed_edges = {flipped_edge_handle};
 
         std::vector<vertexPtr> kept_vertices;
         kept_vertices.reserve(vertices_.size());
@@ -711,22 +1035,74 @@ namespace halfMesh {
         clear_data();
 
         for (const auto &v: kept_vertices) {
-            remap[v->get_handle()] = add_vertex(v->get_x(), v->get_y(), v->get_z());
+            const auto new_vertex = add_vertex(v->get_x(), v->get_y(), v->get_z());
+            remap[v->get_handle()] = new_vertex;
+            result.vertex_handle_remap[v->get_handle()] = new_vertex->get_handle();
         }
 
-        for (const auto &tri: rebuilt_faces) {
+        for (const auto &plan: rebuilt_faces) {
+            const auto &tri = plan.tri;
             const auto it0 = remap.find(tri[0]);
             const auto it1 = remap.find(tri[1]);
             const auto it2 = remap.find(tri[2]);
             if (it0 == remap.end() || it1 == remap.end() || it2 == remap.end()) {
-                return false;
+                result.error = "Vertex remap failed during flip rebuild.";
+                return result;
             }
-            if (!add_face(it0->second, it1->second, it2->second)) {
-                return false;
+            const auto new_face = add_face(it0->second, it1->second, it2->second);
+            if (!new_face) {
+                result.error = "Failed to rebuild face during flip.";
+                return result;
+            }
+            result.face_handle_remap[plan.old_face_handle] = new_face->get_handle();
+        }
+
+        std::unordered_map<EdgeKey, unsigned, EdgeKeyHash, EdgeKeyEqual> new_edge_by_key;
+        for (const auto &new_edge: edges_) {
+            const auto nv1 = new_edge->get_vertex_one();
+            const auto nv2 = new_edge->get_vertex_two();
+            if (!nv1 || !nv2) {
+                continue;
+            }
+            new_edge_by_key[make_edge_key(nv1->get_handle(), nv2->get_handle())] = new_edge->get_handle();
+        }
+
+        for (const auto &old_edge: old_edges) {
+            const auto it1 = result.vertex_handle_remap.find(old_edge.v1);
+            const auto it2 = result.vertex_handle_remap.find(old_edge.v2);
+            if (it1 == result.vertex_handle_remap.end() || it2 == result.vertex_handle_remap.end()) {
+                continue;
+            }
+            const auto key = make_edge_key(it1->second, it2->second);
+            if (const auto neit = new_edge_by_key.find(key); neit != new_edge_by_key.end()) {
+                result.edge_handle_remap[old_edge.handle] = neit->second;
             }
         }
 
-        return true;
+        // Explicitly map old flipped edge to new diagonal (c,d).
+        const auto c_new = result.vertex_handle_remap[c->get_handle()];
+        const auto d_new = result.vertex_handle_remap[d->get_handle()];
+        if (const auto it = new_edge_by_key.find(make_edge_key(c_new, d_new)); it != new_edge_by_key.end()) {
+            result.edge_handle_remap[flipped_edge_handle] = it->second;
+        }
+
+        vertex_data_store = remap_property_store(old_vertex_properties, result.vertex_handle_remap);
+        edge_data_store = remap_property_store(old_edge_properties, result.edge_handle_remap);
+        face_data_store = remap_property_store(old_face_properties, result.face_handle_remap);
+
+        if (const auto it = result.edge_handle_remap.find(flipped_edge_handle);
+            it != result.edge_handle_remap.end()) {
+            result.created_edges = {it->second};
+        }
+        for (const auto &[old_face_handle, new_face_handle]: result.face_handle_remap) {
+            if (old_face_handle == f0_handle || old_face_handle == f1_handle) {
+                result.created_faces.push_back(new_face_handle);
+            }
+        }
+        std::sort(result.created_faces.begin(), result.created_faces.end());
+
+        result.ok = true;
+        return result;
     }
 
     // --- delete_face --------------------------------------------------

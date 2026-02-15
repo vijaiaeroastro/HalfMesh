@@ -44,7 +44,8 @@ int main() {
         return 1;
     }
 
-    if (!mesh.collapse_edge(edge_ab, a)) {
+    const auto edit = mesh.collapse_edge(edge_ab, a);
+    if (!edit.ok) {
         std::cerr << "Edge collapse failed\n";
         return 1;
     }

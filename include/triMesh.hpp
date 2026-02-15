@@ -27,6 +27,20 @@ namespace halfMesh {
         std::vector<MeshValidationIssue> issues;
     };
 
+    struct EditResult {
+        bool ok = false;
+        std::string error;
+        std::vector<unsigned> created_vertices;
+        std::vector<unsigned> removed_vertices;
+        std::vector<unsigned> created_edges;
+        std::vector<unsigned> removed_edges;
+        std::vector<unsigned> created_faces;
+        std::vector<unsigned> removed_faces;
+        std::unordered_map<unsigned, unsigned> vertex_handle_remap;
+        std::unordered_map<unsigned, unsigned> edge_handle_remap;
+        std::unordered_map<unsigned, unsigned> face_handle_remap;
+    };
+
     class triMesh {
     public:
         triMesh();
@@ -99,17 +113,15 @@ namespace halfMesh {
 
         bool can_split(const edgePtr &e) const;
 
-        vertexPtr split_edge(const edgePtr &e);
-
-        vertexPtr split_edge(const edgePtr &e, double t);
+        EditResult split_edge(const edgePtr &e, double t = 0.5);
 
         bool can_collapse(const edgePtr &e, const vertexPtr &target) const;
 
-        bool collapse_edge(const edgePtr &e, const vertexPtr &target);
+        EditResult collapse_edge(const edgePtr &e, const vertexPtr &target);
 
         bool can_flip(const edgePtr &e) const;
 
-        bool flip_edge(const edgePtr &e);
+        EditResult flip_edge(const edgePtr &e);
 
         Eigen::AlignedBox3d axis_aligned_bounding_box() const {
             Eigen::AlignedBox3d box;

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(halfMesh VERSION 1.2.1 LANGUAGES CXX)
+project(halfMesh VERSION 1.3.0 LANGUAGES CXX)
 
 include(GNUInstallDirs)
 

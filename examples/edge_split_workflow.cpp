@@ -45,7 +45,12 @@ int main() {
     }
 
     const auto t = 0.25;
-    const auto mid = mesh.split_edge(edge_ab, t);
+    const auto edit = mesh.split_edge(edge_ab, t);
+    if (!edit.ok || edit.created_vertices.empty()) {
+        std::cerr << "Edge split failed\n";
+        return 1;
+    }
+    const auto mid = mesh.get_vertex(edit.created_vertices.front());
     mesh.complete_mesh();
     if (!mid) {
         std::cerr << "Edge split failed\n";

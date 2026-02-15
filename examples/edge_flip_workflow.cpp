@@ -43,7 +43,8 @@ int main() {
         return 1;
     }
 
-    if (!mesh.flip_edge(edge_ab)) {
+    const auto edit = mesh.flip_edge(edge_ab);
+    if (!edit.ok) {
         std::cerr << "Edge flip failed\n";
         return 1;
     }

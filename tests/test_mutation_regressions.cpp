@@ -78,7 +78,10 @@ void test_split_boundary_edge() {
     assert(edge_ab != nullptr);
     assert(mesh.can_split(edge_ab));
 
-    const auto m = mesh.split_edge(edge_ab);
+    const auto edit = mesh.split_edge(edge_ab);
+    assert(edit.ok);
+    assert(edit.created_vertices.size() == 1);
+    const auto m = mesh.get_vertex(edit.created_vertices.front());
     assert(m != nullptr);
     mesh.complete_mesh();
 
@@ -106,7 +109,10 @@ void test_split_interior_edge() {
     assert(edge_ab != nullptr);
     assert(mesh.can_split(edge_ab));
 
-    const auto m = mesh.split_edge(edge_ab);
+    const auto edit = mesh.split_edge(edge_ab);
+    assert(edit.ok);
+    assert(edit.created_vertices.size() == 1);
+    const auto m = mesh.get_vertex(edit.created_vertices.front());
     assert(m != nullptr);
     mesh.complete_mesh();
 
@@ -127,7 +133,10 @@ void test_split_edge_fraction_parameter() {
     const auto edge_ab = find_edge_between(mesh, a, b);
     assert(edge_ab != nullptr);
 
-    const auto p = mesh.split_edge(edge_ab, 0.25);
+    const auto edit = mesh.split_edge(edge_ab, 0.25);
+    assert(edit.ok);
+    assert(edit.created_vertices.size() == 1);
+    const auto p = mesh.get_vertex(edit.created_vertices.front());
     assert(p != nullptr);
     mesh.complete_mesh();
 
@@ -148,10 +157,10 @@ void test_split_edge_fraction_rejects_endpoints() {
     const auto edge_ab = find_edge_between(mesh, a, b);
     assert(edge_ab != nullptr);
 
-    assert(mesh.split_edge(edge_ab, 0.0) == nullptr);
-    assert(mesh.split_edge(edge_ab, 1.0) == nullptr);
-    assert(mesh.split_edge(edge_ab, -0.1) == nullptr);
-    assert(mesh.split_edge(edge_ab, 1.1) == nullptr);
+    assert(!mesh.split_edge(edge_ab, 0.0).ok);
+    assert(!mesh.split_edge(edge_ab, 1.0).ok);
+    assert(!mesh.split_edge(edge_ab, -0.1).ok);
+    assert(!mesh.split_edge(edge_ab, 1.1).ok);
 
     mesh.complete_mesh();
     assert(mesh.get_vertices().size() == 3);
@@ -172,7 +181,7 @@ void test_collapse_interior_edge_to_endpoint() {
     const auto edge_ab = find_edge_between(mesh, a, b);
     assert(edge_ab != nullptr);
     assert(mesh.can_collapse(edge_ab, a));
-    assert(mesh.collapse_edge(edge_ab, a));
+    assert(mesh.collapse_edge(edge_ab, a).ok);
 
     mesh.complete_mesh();
     assert(mesh.get_vertices().size() == 0);
@@ -192,7 +201,7 @@ void test_collapse_rejects_non_incident_target_vertex() {
     const auto edge_ab = find_edge_between(mesh, a, b);
     assert(edge_ab != nullptr);
     assert(!mesh.can_collapse(edge_ab, x));
-    assert(!mesh.collapse_edge(edge_ab, x));
+    assert(!mesh.collapse_edge(edge_ab, x).ok);
 }
 
 void test_collapse_rejects_duplicate_face_result() {
@@ -211,7 +220,7 @@ void test_collapse_rejects_duplicate_face_result() {
 
     // Collapsing b->a would map (b,c,d) -> (a,c,d), duplicating an existing face.
     assert(!mesh.can_collapse(edge_ab, a));
-    assert(!mesh.collapse_edge(edge_ab, a));
+    assert(!mesh.collapse_edge(edge_ab, a).ok);
 }
 
 void test_flip_interior_edge() {
@@ -227,7 +236,7 @@ void test_flip_interior_edge() {
     const auto edge_ab = find_edge_between(mesh, a, b);
     assert(edge_ab != nullptr);
     assert(mesh.can_flip(edge_ab));
-    assert(mesh.flip_edge(edge_ab));
+    assert(mesh.flip_edge(edge_ab).ok);
 
     mesh.complete_mesh();
     assert(mesh.get_vertices().size() == 4);
@@ -248,7 +257,7 @@ void test_flip_rejects_boundary_edge() {
     const auto edge_ab = find_edge_between(mesh, a, b);
     assert(edge_ab != nullptr);
     assert(!mesh.can_flip(edge_ab));
-    assert(!mesh.flip_edge(edge_ab));
+    assert(!mesh.flip_edge(edge_ab).ok);
 }
 
 void test_flip_rejects_duplicate_face_result() {
@@ -267,7 +276,116 @@ void test_flip_rejects_duplicate_face_result() {
 
     // Flipping AB would create triangle (c,d,a), which already exists.
     assert(!mesh.can_flip(edge_ab));
-    assert(!mesh.flip_edge(edge_ab));
+    assert(!mesh.flip_edge(edge_ab).ok);
+}
+
+void test_split_edit_result_and_property_propagation() {
+    halfMesh::triMesh mesh;
+    const auto a = mesh.add_vertex(0.0, 0.0, 0.0);
+    const auto b = mesh.add_vertex(4.0, 0.0, 0.0);
+    const auto c = mesh.add_vertex(0.0, 2.0, 0.0);
+    const auto f = mesh.add_face(a, b, c);
+    assert(f != nullptr);
+    mesh.complete_mesh();
+
+    assert(mesh.add_vertex_property("temperature", 0.0) == halfMesh::PropertyStatus::Added);
+    assert(mesh.try_set_vertex_property("temperature", a->get_handle(), 0.0) == halfMesh::PropertyStatus::Added);
+    assert(mesh.try_set_vertex_property("temperature", b->get_handle(), 8.0) == halfMesh::PropertyStatus::Added);
+    assert(mesh.add_face_property("region", 0) == halfMesh::PropertyStatus::Added);
+    assert(mesh.try_set_face_property("region", f->get_handle(), 7) == halfMesh::PropertyStatus::Added);
+
+    const auto edge_ab = find_edge_between(mesh, a, b);
+    assert(edge_ab != nullptr);
+    assert(mesh.add_edge_property("weight", 0.0) == halfMesh::PropertyStatus::Added);
+    assert(mesh.try_set_edge_property("weight", edge_ab->get_handle(), 3.5) == halfMesh::PropertyStatus::Added);
+
+    const auto edit = mesh.split_edge(edge_ab, 0.25);
+    assert(edit.ok);
+    assert(edit.error.empty());
+    assert(edit.created_vertices.size() == 1);
+    assert(!edit.created_edges.empty());
+    assert(edit.removed_edges.size() == 1);
+    assert(edit.removed_faces.size() == 1);
+    assert(edit.created_faces.size() == 2);
+
+    mesh.complete_mesh();
+    const auto mid = mesh.get_vertex(edit.created_vertices.front());
+    assert(mid != nullptr);
+
+    double mid_temperature = -1.0;
+    assert(mesh.try_get_vertex_property("temperature", mid->get_handle(), mid_temperature));
+    assert(std::abs(mid_temperature - 2.0) < 1e-12);
+
+    for (const auto new_face_handle: edit.created_faces) {
+        int region = -1;
+        assert(mesh.try_get_face_property("region", new_face_handle, region));
+        assert(region == 7);
+    }
+}
+
+void test_collapse_edit_result_has_vertex_remap_and_properties() {
+    halfMesh::triMesh mesh;
+    const auto a = mesh.add_vertex(0.0, 0.0, 0.0);
+    const auto b = mesh.add_vertex(2.0, 0.0, 0.0);
+    const auto c = mesh.add_vertex(0.0, 2.0, 0.0);
+    const auto d = mesh.add_vertex(2.0, 2.0, 0.0);
+    assert(mesh.add_face(a, b, c) != nullptr);
+    assert(mesh.add_face(b, a, d) != nullptr);
+    mesh.complete_mesh();
+
+    assert(mesh.add_vertex_property("label", 0) == halfMesh::PropertyStatus::Added);
+    assert(mesh.try_set_vertex_property("label", a->get_handle(), 10) == halfMesh::PropertyStatus::Added);
+    assert(mesh.try_set_vertex_property("label", b->get_handle(), 20) == halfMesh::PropertyStatus::Added);
+
+    const auto edge_ab = find_edge_between(mesh, a, b);
+    assert(edge_ab != nullptr);
+    const auto edit = mesh.collapse_edge(edge_ab, a);
+    assert(edit.ok);
+    assert(!edit.vertex_handle_remap.empty());
+    assert(edit.removed_vertices.size() == 1);
+    assert(edit.removed_vertices.front() == b->get_handle());
+
+    mesh.complete_mesh();
+    const auto remapped_a = edit.vertex_handle_remap.at(a->get_handle());
+    int label = -1;
+    assert(mesh.try_get_vertex_property("label", remapped_a, label));
+    assert(label == 10);
+}
+
+void test_flip_edit_result_and_face_property_remap() {
+    halfMesh::triMesh mesh;
+    const auto a = mesh.add_vertex(0.0, 0.0, 0.0);
+    const auto b = mesh.add_vertex(2.0, 0.0, 0.0);
+    const auto c = mesh.add_vertex(0.0, 2.0, 0.0);
+    const auto d = mesh.add_vertex(2.0, 2.0, 0.0);
+    const auto f0 = mesh.add_face(a, b, c);
+    const auto f1 = mesh.add_face(b, a, d);
+    assert(f0 != nullptr);
+    assert(f1 != nullptr);
+    mesh.complete_mesh();
+
+    assert(mesh.add_face_property("id", 0) == halfMesh::PropertyStatus::Added);
+    assert(mesh.try_set_face_property("id", f0->get_handle(), 101) == halfMesh::PropertyStatus::Added);
+    assert(mesh.try_set_face_property("id", f1->get_handle(), 202) == halfMesh::PropertyStatus::Added);
+
+    const auto edge_ab = find_edge_between(mesh, a, b);
+    assert(edge_ab != nullptr);
+    const auto edit = mesh.flip_edge(edge_ab);
+    assert(edit.ok);
+    assert(edit.removed_faces.size() == 2);
+    assert(edit.created_faces.size() == 2);
+
+    mesh.complete_mesh();
+    assert(find_edge_between(mesh, c, d) != nullptr);
+
+    const auto remapped_f0 = edit.face_handle_remap.at(f0->get_handle());
+    const auto remapped_f1 = edit.face_handle_remap.at(f1->get_handle());
+    int id0 = -1;
+    int id1 = -1;
+    assert(mesh.try_get_face_property("id", remapped_f0, id0));
+    assert(mesh.try_get_face_property("id", remapped_f1, id1));
+    assert(id0 == 101);
+    assert(id1 == 202);
 }
 } // namespace
 
@@ -284,6 +402,9 @@ int main() {
     test_flip_interior_edge();
     test_flip_rejects_boundary_edge();
     test_flip_rejects_duplicate_face_result();
+    test_split_edit_result_and_property_propagation();
+    test_collapse_edit_result_has_vertex_remap_and_properties();
+    test_flip_edit_result_and_face_property_remap();
     std::cout << "halfMesh mutation/regression tests passed\n";
     return 0;
 }
