@@ -1,5 +1,9 @@
 #pragma once
 
+#include <algorithm>
+#include <cctype>
+#include <memory>
+#include <string>
 #include <vector>
 #include <Eigen/Dense>
 

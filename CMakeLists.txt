@@ -1,70 +1,75 @@
 cmake_minimum_required(VERSION 3.15)
-project(halfMesh VERSION 1.0 LANGUAGES CXX)
+project(halfMesh VERSION 1.1.0 LANGUAGES CXX)
 
-# enforce C++17
-set(CMAKE_CXX_STANDARD        17)
+include(GNUInstallDirs)
+
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS      OFF)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Optionally build tests
-option(BUILD_TESTS "Build the halfMeshTest executable" ON)
-option(BUILD_SHARED_LIBS "Build Shared library" OFF)
+option(BUILD_TESTS "Build unit tests" ON)
+option(BUILD_EXAMPLES "Build usage examples" ON)
+option(BUILD_SHARED_LIBS "Build shared library" OFF)
 
-# Source files
-set(SRCS
-        source/mesh_core.cpp
-        source/mesh_algorithms.cpp
-        source/mesh_traversers.cpp
-        source/mesh_geometry.cpp
-        source/mesh_io.cpp
+set(HALFMESH_SOURCES
+    source/mesh_core.cpp
+    source/mesh_algorithms.cpp
+    source/mesh_traversers.cpp
+    source/mesh_geometry.cpp
+    source/mesh_io.cpp
+    source/mesh_validation.cpp
 )
 
-# Header files (for IDE integration only)
-set(HDRS
-        include/common.hpp
-        include/stream_utilities.hpp
-        include/connectivity.hpp
-        include/vertex.hpp
-        include/half_edge.hpp
-        include/edge.hpp
-        include/face.hpp
-        include/triMesh.hpp
+set(HALFMESH_HEADERS
+    include/common.hpp
+    include/stream_utilities.hpp
+    include/connectivity.hpp
+    include/vertex.hpp
+    include/half_edge.hpp
+    include/edge.hpp
+    include/face.hpp
+    include/triMesh.hpp
+    include/halfMesh.hpp
 )
 
-# Pick shared vs static based on BUILD_SHARED_LIBS
-if(BUILD_SHARED_LIBS)
-    add_library(halfMesh SHARED
-            ${SRCS}
-            ${HDRS}
-    )
-else()
-    add_library(halfMesh STATIC
-            ${SRCS}
-            ${HDRS}
-    )
-endif()
+add_library(halfMesh ${HALFMESH_SOURCES} ${HALFMESH_HEADERS})
+add_library(halfMesh::halfMesh ALIAS halfMesh)
 
-# Where to find your headers
 target_include_directories(halfMesh
-        PUBLIC
+    PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/deps/eigen-3.4.0>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/deps/nlohmann-3.12.0>
-        $<INSTALL_INTERFACE:include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-# Compiler warnings
 if(MSVC)
     target_compile_options(halfMesh PRIVATE /W4 /permissive-)
 else()
     target_compile_options(halfMesh PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
-# Test executable
-if(BUILD_TESTS)
-    add_executable(halfMeshTest main.cpp)
-    target_link_libraries(halfMeshTest PRIVATE halfMesh)
-    target_include_directories(halfMeshTest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-    enable_testing()
-    add_test(NAME halfMeshTest COMMAND halfMeshTest)
+if(BUILD_EXAMPLES)
+    add_executable(halfMesh_example examples/basic_usage.cpp)
+    target_link_libraries(halfMesh_example PRIVATE halfMesh::halfMesh)
 endif()
+
+if(BUILD_TESTS)
+    enable_testing()
+    add_executable(halfMesh_tests tests/mesh_smoke_tests.cpp)
+    target_link_libraries(halfMesh_tests PRIVATE halfMesh::halfMesh)
+    add_test(NAME halfMesh_tests COMMAND halfMesh_tests)
+endif()
+
+install(TARGETS halfMesh
+    EXPORT halfMeshTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+install(FILES ${HALFMESH_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(EXPORT halfMeshTargets
+    NAMESPACE halfMesh::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/halfMesh
+)

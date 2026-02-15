@@ -39,6 +39,7 @@ namespace halfMesh {
         next_half_edge_handle_ = 0;
         next_edge_handle_ = 0;
         next_face_handle_ = 0;
+        topology_dirty_ = false;
     }
 
     // Core mutators
@@ -48,6 +49,7 @@ namespace halfMesh {
         v->set_handle(h);
         vertices_.push_back(v);
         handle_to_vertex_[h] = v;
+        topology_dirty_ = true;
         // std::cout << "Added vertex : " << h << " with coordinates : " << x << "," << y << "," << z << std::endl;
         return v;
     }
@@ -78,6 +80,7 @@ namespace halfMesh {
         half_edges_.push_back(he);
         handle_to_half_edge_[h] = he;
         half_edge_lookup_[key] = he;
+        topology_dirty_ = true;
         return he;
     }
 
@@ -90,6 +93,7 @@ namespace halfMesh {
             const auto he = add_half_edge(v1, v2, f);
             he->set_parent_edge(e);
             e->set_one_half_edge(he);
+            topology_dirty_ = true;
             // std::cout << "----> Found an existing edge : "
             // << e->handle() << " between " << e->get_vertex_one()->handle() << "," << e->get_vertex_two()->handle() << std::endl;
             return e;
@@ -105,6 +109,7 @@ namespace halfMesh {
         const auto he = add_half_edge(v1, v2, f);
         he->set_parent_edge(e);
         e->set_one_half_edge(he);
+        topology_dirty_ = true;
 
         // std::cout << "----> Created a new edge : "
         // << e->handle() << " between " << e->get_vertex_one()->handle() << "," << e->get_vertex_two()->handle() << std::endl;
@@ -152,6 +157,7 @@ namespace halfMesh {
 
         // 5) store one representative half‐edge on f
         f->set_one_half_edge(he1);
+        topology_dirty_ = true;
 
         return f;
     }
@@ -203,6 +209,7 @@ namespace halfMesh {
         // 4) Finally erase the face itself
         handle_to_face_.erase(f->get_handle());
         faces_.erase(fit);
+        topology_dirty_ = true;
 
         return true;
     }
@@ -259,6 +266,7 @@ namespace halfMesh {
         // 4) Finally erase the edge itself
         handle_to_edge_.erase(e->get_handle());
         edges_.erase(eit);
+        topology_dirty_ = true;
 
         return true;
     }
@@ -305,6 +313,7 @@ namespace halfMesh {
         // 5) Finally erase the vertex itself
         handle_to_vertex_.erase(v->get_handle());
         vertices_.erase(vit);
+        topology_dirty_ = true;
 
         return true;
     }
@@ -349,16 +358,33 @@ namespace halfMesh {
 
         // mark edge boundaries
         for (const auto &e: edges_) {
-            e->set_boundary(
-                e->get_one_half_edge()->is_boundary()
-            );
+            if (const auto one = e->get_one_half_edge()) {
+                e->set_boundary(one->is_boundary());
+            }
         }
+
+        topology_dirty_ = false;
     }
 
 
     // trivial handle‐->object
-    vertexPtr triMesh::get_vertex(unsigned h) const { return handle_to_vertex_.at(h); }
-    halfEdgePtr triMesh::get_half_edge(unsigned h) const { return handle_to_half_edge_.at(h); }
-    edgePtr triMesh::get_edge(unsigned h) const { return handle_to_edge_.at(h); }
-    facePtr triMesh::get_face(unsigned h) const { return handle_to_face_.at(h); }
+    vertexPtr triMesh::get_vertex(unsigned h) const {
+        if (const auto it = handle_to_vertex_.find(h); it != handle_to_vertex_.end()) return it->second;
+        return nullptr;
+    }
+
+    halfEdgePtr triMesh::get_half_edge(unsigned h) const {
+        if (const auto it = handle_to_half_edge_.find(h); it != handle_to_half_edge_.end()) return it->second;
+        return nullptr;
+    }
+
+    edgePtr triMesh::get_edge(unsigned h) const {
+        if (const auto it = handle_to_edge_.find(h); it != handle_to_edge_.end()) return it->second;
+        return nullptr;
+    }
+
+    facePtr triMesh::get_face(unsigned h) const {
+        if (const auto it = handle_to_face_.find(h); it != handle_to_face_.end()) return it->second;
+        return nullptr;
+    }
 } // namespace HalfMesh

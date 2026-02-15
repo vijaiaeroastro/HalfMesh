@@ -17,6 +17,16 @@
 #include "stream_utilities.hpp"
 
 namespace halfMesh {
+    struct MeshValidationIssue {
+        std::string code;
+        std::string detail;
+    };
+
+    struct MeshValidationReport {
+        bool ok = true;
+        std::vector<MeshValidationIssue> issues;
+    };
+
     class triMesh {
     public:
         triMesh();
@@ -39,6 +49,12 @@ namespace halfMesh {
                          const vertexPtr &v3);
 
         void complete_mesh();
+
+        bool is_topology_dirty() const { return topology_dirty_; }
+
+        MeshValidationReport validate() const;
+
+        bool is_valid() const { return validate().ok; }
 
         // I/O
         void save(const std::string &filename) const;
@@ -86,11 +102,11 @@ namespace halfMesh {
             box.setEmpty();
 
             // extend to include every vertex
-            for (auto& v : vertices_) {
+            for (const auto &v: vertices_) {
                 box.extend(Eigen::Vector3d{
-                  v->get_x(),
-                  v->get_y(),
-                  v->get_z()
+                    v->get_x(),
+                    v->get_y(),
+                    v->get_z()
                 });
             }
 
@@ -105,6 +121,18 @@ namespace halfMesh {
         double get_face_angle(unsigned f1, unsigned f2) const;
 
         // Property API
+        bool has_vertex_property(const std::string &name) const {
+            return vertex_data_store.contains(name);
+        }
+
+        bool has_edge_property(const std::string &name) const {
+            return edge_data_store.contains(name);
+        }
+
+        bool has_face_property(const std::string &name) const {
+            return face_data_store.contains(name);
+        }
+
         template<typename T>
         PropertyStatus add_vertex_property(const std::string &name, T init) {
             if (vertex_data_store.contains(name))
@@ -143,6 +171,89 @@ namespace halfMesh {
                 return PropertyStatus::DoesNotExist;
             store.erase(name);
             return PropertyStatus::Deleted;
+        }
+
+        bool has_vertex_handle(unsigned h) const { return handle_to_vertex_.find(h) != handle_to_vertex_.end(); }
+
+        bool has_edge_handle(unsigned h) const { return handle_to_edge_.find(h) != handle_to_edge_.end(); }
+
+        bool has_face_handle(unsigned h) const { return handle_to_face_.find(h) != handle_to_face_.end(); }
+
+        bool has_half_edge_handle(unsigned h) const { return handle_to_half_edge_.find(h) != handle_to_half_edge_.end(); }
+
+        template<typename T>
+        PropertyStatus try_set_vertex_property(const std::string &name, unsigned h, T val) {
+            if (!has_vertex_property(name) || !has_vertex_handle(h))
+                return PropertyStatus::DoesNotExist;
+            vertex_data_store[name][h] = val;
+            return PropertyStatus::Added;
+        }
+
+        template<typename T>
+        PropertyStatus try_set_edge_property(const std::string &name, unsigned h, T val) {
+            if (!has_edge_property(name) || !has_edge_handle(h))
+                return PropertyStatus::DoesNotExist;
+            edge_data_store[name][h] = val;
+            return PropertyStatus::Added;
+        }
+
+        template<typename T>
+        PropertyStatus try_set_face_property(const std::string &name, unsigned h, T val) {
+            if (!has_face_property(name) || !has_face_handle(h))
+                return PropertyStatus::DoesNotExist;
+            face_data_store[name][h] = val;
+            return PropertyStatus::Added;
+        }
+
+        template<typename T>
+        bool try_get_vertex_property(const std::string &name, unsigned h, T &out) const {
+            if (!has_vertex_property(name))
+                return false;
+            const auto &store = vertex_data_store.at(name);
+            if (store.is_array()) {
+                if (h >= store.size())
+                    return false;
+                out = store.at(h).get<T>();
+                return true;
+            }
+            if (!store.contains(std::to_string(h)))
+                return false;
+            out = store.at(std::to_string(h)).get<T>();
+            return true;
+        }
+
+        template<typename T>
+        bool try_get_edge_property(const std::string &name, unsigned h, T &out) const {
+            if (!has_edge_property(name))
+                return false;
+            const auto &store = edge_data_store.at(name);
+            if (store.is_array()) {
+                if (h >= store.size())
+                    return false;
+                out = store.at(h).get<T>();
+                return true;
+            }
+            if (!store.contains(std::to_string(h)))
+                return false;
+            out = store.at(std::to_string(h)).get<T>();
+            return true;
+        }
+
+        template<typename T>
+        bool try_get_face_property(const std::string &name, unsigned h, T &out) const {
+            if (!has_face_property(name))
+                return false;
+            const auto &store = face_data_store.at(name);
+            if (store.is_array()) {
+                if (h >= store.size())
+                    return false;
+                out = store.at(h).get<T>();
+                return true;
+            }
+            if (!store.contains(std::to_string(h)))
+                return false;
+            out = store.at(std::to_string(h)).get<T>();
+            return true;
         }
 
         template<typename T>
@@ -275,6 +386,8 @@ namespace halfMesh {
         unsigned next_half_edge_handle_ = 0;
         unsigned next_edge_handle_ = 0;
         unsigned next_face_handle_ = 0;
+
+        bool topology_dirty_ = false;
     };
 
     inline std::ostream &operator<<(std::ostream &os, triMesh const &m) {
