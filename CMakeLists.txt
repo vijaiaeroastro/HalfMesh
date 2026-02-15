@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(halfMesh VERSION 1.4.0 LANGUAGES CXX)
+project(halfMesh VERSION 1.5.0 LANGUAGES CXX)
 
 include(GNUInstallDirs)
 
@@ -14,6 +14,9 @@ option(BUILD_SHARED_LIBS "Build shared library" OFF)
 
 set(HALFMESH_SOURCES
     source/mesh_core.cpp
+    source/mesh_edit_split.cpp
+    source/mesh_edit_collapse.cpp
+    source/mesh_edit_flip.cpp
     source/mesh_algorithms.cpp
     source/mesh_traversers.cpp
     source/mesh_geometry.cpp
@@ -40,7 +43,6 @@ add_library(halfMesh::halfMesh ALIAS halfMesh)
 target_include_directories(halfMesh
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/deps/eigen-3.4.0>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/deps/nlohmann-3.12.0>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
@@ -66,6 +68,18 @@ endif()
 
 if(BUILD_TESTS)
     enable_testing()
+
+    add_executable(halfMesh_test_edit_split tests/test_edit_split.cpp)
+    target_link_libraries(halfMesh_test_edit_split PRIVATE halfMesh::halfMesh)
+    add_test(NAME halfMesh_test_edit_split COMMAND halfMesh_test_edit_split)
+
+    add_executable(halfMesh_test_edit_collapse tests/test_edit_collapse.cpp)
+    target_link_libraries(halfMesh_test_edit_collapse PRIVATE halfMesh::halfMesh)
+    add_test(NAME halfMesh_test_edit_collapse COMMAND halfMesh_test_edit_collapse)
+
+    add_executable(halfMesh_test_edit_flip tests/test_edit_flip.cpp)
+    target_link_libraries(halfMesh_test_edit_flip PRIVATE halfMesh::halfMesh)
+    add_test(NAME halfMesh_test_edit_flip COMMAND halfMesh_test_edit_flip)
 
     add_executable(halfMesh_test_topology tests/test_topology_geometry.cpp)
     target_link_libraries(halfMesh_test_topology PRIVATE halfMesh::halfMesh)

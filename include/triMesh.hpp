@@ -7,7 +7,6 @@
 #include <memory>
 #include <ostream>
 #include <json.hpp>
-#include <Eigen/Dense>
 
 #include "common.hpp"
 #include "connectivity.hpp"
@@ -123,19 +122,14 @@ namespace halfMesh {
 
         EditResult flip_edge(const edgePtr &e);
 
-        Eigen::AlignedBox3d axis_aligned_bounding_box() const {
-            Eigen::AlignedBox3d box;
-            box.setEmpty();
-
-            // extend to include every vertex
+        AABB axis_aligned_bounding_box() const {
+            AABB box;
             for (const auto &v: vertices_) {
-                box.extend(Eigen::Vector3d{
-                    v->get_x(),
-                    v->get_y(),
-                    v->get_z()
-                });
+                if (!v) {
+                    continue;
+                }
+                box.extend({v->get_x(), v->get_y(), v->get_z()});
             }
-
             return box;
         }
 

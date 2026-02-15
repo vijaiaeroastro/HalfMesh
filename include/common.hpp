@@ -1,7 +1,9 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <cctype>
+#include <limits>
 #include <memory>
 #include <string>
 #include <vector>
@@ -19,6 +21,34 @@ namespace halfMesh {
     using halfEdgePtr = std::shared_ptr<halfedge>;
     using edgePtr = std::shared_ptr<edge>;
     using facePtr = std::shared_ptr<face>;
+    using Vec3 = std::array<double, 3>;
+
+    struct AABB {
+        Vec3 min_corner{
+            std::numeric_limits<double>::infinity(),
+            std::numeric_limits<double>::infinity(),
+            std::numeric_limits<double>::infinity()
+        };
+        Vec3 max_corner{
+            -std::numeric_limits<double>::infinity(),
+            -std::numeric_limits<double>::infinity(),
+            -std::numeric_limits<double>::infinity()
+        };
+        bool empty = true;
+
+        void extend(const Vec3 &p) {
+            if (empty) {
+                min_corner = p;
+                max_corner = p;
+                empty = false;
+                return;
+            }
+            for (size_t i = 0; i < 3; ++i) {
+                min_corner[i] = std::min(min_corner[i], p[i]);
+                max_corner[i] = std::max(max_corner[i], p[i]);
+            }
+        }
+    };
 
 
     // --- Entity identifiers ---

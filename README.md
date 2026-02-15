@@ -25,9 +25,18 @@ ctest --test-dir build --output-on-failure
 ```
 
 Current test binaries (run independently or via `ctest`):
+- `halfMesh_test_edit_split`
+- `halfMesh_test_edit_collapse`
+- `halfMesh_test_edit_flip`
 - `halfMesh_test_topology`
 - `halfMesh_test_validation`
 - `halfMesh_test_mutation`
+
+Core edit implementation files:
+- `source/mesh_edit_split.cpp`
+- `source/mesh_edit_collapse.cpp`
+- `source/mesh_edit_flip.cpp`
+- shared helpers: `source/mesh_edit_common.hpp`
 
 Edge split API:
 - `split_edge(edge, t)` splits at fraction `t` along the edge (`0 < t < 1`, default `t=0.5`)
@@ -144,7 +153,6 @@ cmake --install build
 
 - C++17+
 - `nlohmann/json` (vendored in `deps/nlohmann-3.12.0`)
-- Eigen 3.4.0 (vendored in `deps/eigen-3.4.0`)
 
 ## License
 

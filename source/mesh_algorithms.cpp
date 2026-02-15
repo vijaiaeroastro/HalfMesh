@@ -1,4 +1,5 @@
 #include "triMesh.hpp"
+#include <cmath>
 #include <unordered_set>
 #include <queue>
 #include <vector>
@@ -129,12 +130,19 @@ namespace halfMesh {
             auto [v0, v1, v2] = f->get_vertices();
 
             // pull out their 3D positions
-            const Eigen::Vector3d p0 = v0->get_position();
-            const Eigen::Vector3d p1 = v1->get_position();
-            const Eigen::Vector3d p2 = v2->get_position();
+            const auto p0 = v0->get_position();
+            const auto p1 = v1->get_position();
+            const auto p2 = v2->get_position();
 
-            // standard triangle area
-            total += 0.5 * (p1 - p0).cross(p2 - p0).norm();
+            // standard triangle area using cross product magnitude.
+            const Vec3 u{p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]};
+            const Vec3 v{p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2]};
+            const Vec3 cross{
+                u[1] * v[2] - u[2] * v[1],
+                u[2] * v[0] - u[0] * v[2],
+                u[0] * v[1] - u[1] * v[0]
+            };
+            total += 0.5 * std::sqrt(cross[0] * cross[0] + cross[1] * cross[1] + cross[2] * cross[2]);
         }
 
         return total;
