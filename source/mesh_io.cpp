@@ -1,4 +1,5 @@
 #include "triMesh.hpp"
+#include "io_format.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -6,17 +7,20 @@
 
 namespace halfMesh {
     void triMesh::save(const std::string &fn) const {
-        switch (guess_mesh_format(fn)) {
-            case MeshType::Gmsh:
+        switch (detect_format_from_path(fn)) {
+            case MeshFormat::Gmsh:
                 write_gmsh(fn);
                 break;
-            case MeshType::Stl:
+            case MeshFormat::Stl:
                 write_stl_ascii(fn);
                 break;
-            case MeshType::Binary:
+            case MeshFormat::Obj:
+                write_obj(fn);
+                break;
+            case MeshFormat::Binary:
                 write_binary(fn);
                 break;
-            case MeshType::Vtk:
+            case MeshFormat::Vtk:
                 write_vtk(fn);
                 break;
             default:
@@ -26,15 +30,21 @@ namespace halfMesh {
     }
 
     void triMesh::read(const std::string &filename) {
-        switch (guess_mesh_format(filename)) {
-            case MeshType::Gmsh:
+        switch (detect_format_from_path(filename)) {
+            case MeshFormat::Gmsh:
                 read_gmsh(filename);
                 break;
-            case MeshType::Stl:
+            case MeshFormat::Stl:
                 read_stl(filename);
                 break;
-            case MeshType::Binary:
+            case MeshFormat::Obj:
+                read_obj(filename);
+                break;
+            case MeshFormat::Binary:
                 read_binary(filename);
+                break;
+            case MeshFormat::Vtk:
+                std::cerr << "VTK read is not implemented: " << filename << std::endl;
                 break;
             default:
                 std::cerr << "Unknown format: " << filename << std::endl;
@@ -85,6 +95,76 @@ namespace halfMesh {
                 add_face(tmp[n1], tmp[n2], tmp[n3]);
             }
         }
+        complete_mesh();
+    }
+
+    void triMesh::read_obj(const std::string &fn) {
+        clear_data();
+        std::ifstream in(fn);
+        if (!in) {
+            std::cerr << "Could not open OBJ: " << fn << std::endl;
+            return;
+        }
+
+        std::vector<vertexPtr> obj_vertices;
+        std::string line;
+        while (std::getline(in, line)) {
+            std::istringstream iss(line);
+            std::string tag;
+            if (!(iss >> tag)) {
+                continue;
+            }
+
+            if (tag == "v") {
+                double x = 0.0, y = 0.0, z = 0.0;
+                if (iss >> x >> y >> z) {
+                    obj_vertices.push_back(add_vertex(x, y, z));
+                }
+                continue;
+            }
+
+            if (tag == "f") {
+                std::vector<int> face_indices;
+                std::string token;
+                while (iss >> token) {
+                    if (token.empty()) {
+                        continue;
+                    }
+
+                    // Accept "i", "i/j", "i//k", "i/j/k" and only use vertex index.
+                    const auto slash = token.find('/');
+                    const auto index_token = token.substr(0, slash);
+                    if (index_token.empty()) {
+                        continue;
+                    }
+
+                    int idx = std::stoi(index_token);
+                    if (idx == 0) {
+                        continue;
+                    }
+                    if (idx < 0) {
+                        idx = static_cast<int>(obj_vertices.size()) + idx + 1;
+                    }
+                    if (idx <= 0 || static_cast<size_t>(idx) > obj_vertices.size()) {
+                        continue;
+                    }
+                    face_indices.push_back(idx - 1); // OBJ is 1-based
+                }
+
+                if (face_indices.size() < 3) {
+                    continue;
+                }
+
+                // Triangulate polygon face as fan (v0, vi, vi+1).
+                for (size_t i = 1; i + 1 < face_indices.size(); ++i) {
+                    const auto v0 = obj_vertices[face_indices[0]];
+                    const auto v1 = obj_vertices[face_indices[i]];
+                    const auto v2 = obj_vertices[face_indices[i + 1]];
+                    add_face(v0, v1, v2);
+                }
+            }
+        }
+
         complete_mesh();
     }
 

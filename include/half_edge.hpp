@@ -1,7 +1,6 @@
 // half_edge.hpp
 #pragma once
 #include <common.hpp>
-#include <memory>
 #include <limits>
 
 namespace halfMesh {

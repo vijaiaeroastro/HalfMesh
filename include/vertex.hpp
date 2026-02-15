@@ -1,9 +1,10 @@
 #pragma once
 
 #include <common.hpp>
-#include <half_edge.hpp>
+#include <limits>
 #include <memory>
 #include <vector>
+#include <Eigen/Dense>
 
 namespace halfMesh {
     class vertex {

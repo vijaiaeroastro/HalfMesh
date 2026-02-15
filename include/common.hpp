@@ -5,7 +5,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <Eigen/Dense>
 
 namespace halfMesh {
     // Forward declarations
@@ -21,15 +20,6 @@ namespace halfMesh {
     using edgePtr = std::shared_ptr<edge>;
     using facePtr = std::shared_ptr<face>;
 
-
-    // --- Mesh I/O formats ---
-    enum class MeshType {
-        Gmsh = 100,
-        Stl = 200,
-        Binary = 300,
-        Vtk = 500,
-        Unknown = 999
-    };
 
     // --- Entity identifiers ---
     enum class EntityType {
@@ -78,16 +68,6 @@ namespace halfMesh {
     inline bool ends_with(const std::string &s, const std::string &suffix) {
         return s.size() >= suffix.size()
                && std::equal(suffix.rbegin(), suffix.rend(), s.rbegin());
-    }
-
-    // Utility to lower-case & detect extensions
-    inline MeshType guess_mesh_format(const std::string &filename) {
-        auto s = to_lower(filename);
-        if (ends_with(s, ".msh")) return MeshType::Gmsh;
-        if (ends_with(s, ".stl")) return MeshType::Stl;
-        if (ends_with(s, ".bm")) return MeshType::Binary;
-        if (ends_with(s, ".vtk")) return MeshType::Vtk;
-        return MeshType::Unknown;
     }
 
     // Helpers

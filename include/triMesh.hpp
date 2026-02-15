@@ -1,12 +1,13 @@
 #pragma once
 
-#include <algorithm>
 #include <string>
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
 #include <memory>
+#include <ostream>
 #include <json.hpp>
+#include <Eigen/Dense>
 
 #include "common.hpp"
 #include "connectivity.hpp"
@@ -14,7 +15,6 @@
 #include "half_edge.hpp"
 #include "edge.hpp"
 #include "face.hpp"
-#include "stream_utilities.hpp"
 
 namespace halfMesh {
     struct MeshValidationIssue {

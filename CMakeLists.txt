@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(halfMesh VERSION 1.2.0 LANGUAGES CXX)
+project(halfMesh VERSION 1.2.1 LANGUAGES CXX)
 
 include(GNUInstallDirs)
 
@@ -22,6 +22,7 @@ set(HALFMESH_SOURCES
 
 set(HALFMESH_HEADERS
     include/common.hpp
+    include/io_format.hpp
     include/stream_utilities.hpp
     include/connectivity.hpp
     include/vertex.hpp

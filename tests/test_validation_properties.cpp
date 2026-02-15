@@ -62,11 +62,30 @@ void test_property_guards() {
     assert(mesh.try_set_vertex_property("temperature", invalid_handle, 1.0) == halfMesh::PropertyStatus::DoesNotExist);
     assert(!mesh.try_get_vertex_property("temperature", invalid_handle, out));
 }
+
+void test_format_detection_api() {
+    using halfMesh::MeshFormat;
+
+    assert(halfMesh::detect_format_from_path("mesh.stl") == MeshFormat::Stl);
+    assert(halfMesh::detect_format_from_path("mesh.STL") == MeshFormat::Stl);
+    assert(halfMesh::detect_format_from_path("mesh.obj") == MeshFormat::Obj);
+    assert(halfMesh::detect_format_from_path("mesh.msh") == MeshFormat::Gmsh);
+    assert(halfMesh::detect_format_from_path("mesh.bm") == MeshFormat::Binary);
+    assert(halfMesh::detect_format_from_path("mesh.vtk") == MeshFormat::Vtk);
+    assert(halfMesh::detect_format_from_path("mesh.unknown") == MeshFormat::Unknown);
+
+    // Backward-compatibility shim should still behave the same.
+    assert(halfMesh::guess_mesh_format("legacy.stl") == MeshFormat::Stl);
+
+    halfMesh::MeshType legacyType = halfMesh::guess_mesh_format("legacy.obj");
+    assert(legacyType == MeshFormat::Obj);
+}
 } // namespace
 
 int main() {
     test_validation_and_dirty_state();
     test_property_guards();
+    test_format_detection_api();
     std::cout << "halfMesh validation/property tests passed\n";
     return 0;
 }

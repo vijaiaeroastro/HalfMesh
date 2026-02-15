@@ -1,7 +1,7 @@
 // face.hpp
 #pragma once
 #include <common.hpp>
-#include <memory>
+#include <limits>
 #include <tuple>
 
 namespace halfMesh {
