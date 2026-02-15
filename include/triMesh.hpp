@@ -97,6 +97,20 @@ namespace halfMesh {
 
         size_t num_connected_components() const;
 
+        bool can_split(const edgePtr &e) const;
+
+        vertexPtr split_edge(const edgePtr &e);
+
+        vertexPtr split_edge(const edgePtr &e, double t);
+
+        bool can_collapse(const edgePtr &e, const vertexPtr &target) const;
+
+        bool collapse_edge(const edgePtr &e, const vertexPtr &target);
+
+        bool can_flip(const edgePtr &e) const;
+
+        bool flip_edge(const edgePtr &e);
+
         Eigen::AlignedBox3d axis_aligned_bounding_box() const {
             Eigen::AlignedBox3d box;
             box.setEmpty();

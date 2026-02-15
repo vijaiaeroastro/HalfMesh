@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(halfMesh VERSION 1.1.0 LANGUAGES CXX)
+project(halfMesh VERSION 1.2.0 LANGUAGES CXX)
 
 include(GNUInstallDirs)
 
@@ -52,13 +52,30 @@ endif()
 if(BUILD_EXAMPLES)
     add_executable(halfMesh_example examples/basic_usage.cpp)
     target_link_libraries(halfMesh_example PRIVATE halfMesh::halfMesh)
+    add_executable(halfMesh_validation_example examples/validation_workflow.cpp)
+    target_link_libraries(halfMesh_validation_example PRIVATE halfMesh::halfMesh)
+    add_executable(halfMesh_edge_split_example examples/edge_split_workflow.cpp)
+    target_link_libraries(halfMesh_edge_split_example PRIVATE halfMesh::halfMesh)
+    add_executable(halfMesh_edge_collapse_example examples/edge_collapse_workflow.cpp)
+    target_link_libraries(halfMesh_edge_collapse_example PRIVATE halfMesh::halfMesh)
+    add_executable(halfMesh_edge_flip_example examples/edge_flip_workflow.cpp)
+    target_link_libraries(halfMesh_edge_flip_example PRIVATE halfMesh::halfMesh)
 endif()
 
 if(BUILD_TESTS)
     enable_testing()
-    add_executable(halfMesh_tests tests/mesh_smoke_tests.cpp)
-    target_link_libraries(halfMesh_tests PRIVATE halfMesh::halfMesh)
-    add_test(NAME halfMesh_tests COMMAND halfMesh_tests)
+
+    add_executable(halfMesh_test_topology tests/test_topology_geometry.cpp)
+    target_link_libraries(halfMesh_test_topology PRIVATE halfMesh::halfMesh)
+    add_test(NAME halfMesh_test_topology COMMAND halfMesh_test_topology)
+
+    add_executable(halfMesh_test_validation tests/test_validation_properties.cpp)
+    target_link_libraries(halfMesh_test_validation PRIVATE halfMesh::halfMesh)
+    add_test(NAME halfMesh_test_validation COMMAND halfMesh_test_validation)
+
+    add_executable(halfMesh_test_mutation tests/test_mutation_regressions.cpp)
+    target_link_libraries(halfMesh_test_mutation PRIVATE halfMesh::halfMesh)
+    add_test(NAME halfMesh_test_mutation COMMAND halfMesh_test_mutation)
 endif()
 
 install(TARGETS halfMesh

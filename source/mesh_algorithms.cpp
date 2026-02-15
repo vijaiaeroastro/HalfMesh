@@ -141,30 +141,34 @@ namespace halfMesh {
     }
 
     size_t triMesh::num_connected_components() const {
-        const size_t N = vertices_.size();
-        std::vector<char> visited(N, 0);
+        std::unordered_set<unsigned> visited;
         size_t comps = 0;
 
         for (auto &v0: vertices_) {
+            if (!v0) {
+                continue;
+            }
             const unsigned h0 = v0->get_handle();
-            if (visited[h0]) continue;
+            if (visited.count(h0)) continue;
             ++comps;
             std::queue<vertexPtr> Q;
             Q.push(v0);
-            visited[h0] = 1;
+            visited.insert(h0);
 
             while (!Q.empty()) {
                 const auto v = Q.front();
                 Q.pop();
                 for (const auto &he: v->get_outgoing_half_edges()) {
-                    if (auto w = he->get_vertex_two(); w && !visited[w->get_handle()]) {
-                        visited[w->get_handle()] = 1;
+                    if (auto w = he->get_vertex_two();
+                        w && !visited.count(w->get_handle())) {
+                        visited.insert(w->get_handle());
                         Q.push(w);
                     }
                 }
                 for (const auto &he: v->get_incoming_half_edges()) {
-                    if (auto w = he->get_vertex_one(); w && !visited[w->get_handle()]) {
-                        visited[w->get_handle()] = 1;
+                    if (auto w = he->get_vertex_one();
+                        w && !visited.count(w->get_handle())) {
+                        visited.insert(w->get_handle());
                         Q.push(w);
                     }
                 }
